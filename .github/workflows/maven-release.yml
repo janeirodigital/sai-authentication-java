@@ -1,0 +1,98 @@
+name: Publish Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      minor_increment:
+        description: Minor version increment
+        required: true
+        default: 'false'
+      major_increment:
+        description: Major version increment
+        required: true
+        default: 'false'
+      is_draft_release:
+        description: Is this a draft (not finalized) release?
+        required: true
+        default: 'false'
+      is_prerelease:
+        description: Is this a prerelease (not production ready)?
+        required: true
+        default: 'false'
+      summary:
+        description: Release summary
+        required: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build and Test
+        uses: qcastel/github-actions-maven-cmd@master
+        with:
+          maven-args: "clean install -Ddockerfile.skip -DdockerCompose.skip -Djib.skip"
+      ###############################################################
+      # Prepare and deploy the release via maven, which will create
+      # a git tag for the release, then increment it and set to
+      # new snapshot version. Also pushes artifacts to package repo
+      ###############################################################
+      - name: Prepare and Deploy Release
+        uses: qcastel/github-actions-maven-release@master
+        env:
+          JAVA_HOME: /usr/lib/jvm/java-11-openjdk/
+        with:
+          # releases are done from the main branch
+          release-branch-name: "main"
+          ###########################################################
+          # minor version increment  e.g. 1.1.0 -> 1.2.0
+          version-minor: ${{github.event.inputs.minor_increment}}
+          # major version increment  e.g. 1.0.0 -> 2.0.0
+          version-major: ${{github.event.inputs.major_increment}}
+          # If both minor and major increment values are false, a patch
+          # version increment will be performed. e.g. 1.0.0 -> 1.0.1
+          ###########################################################
+          # name and email of the bot in git commits
+          git-release-bot-name: "xformer-bot"
+          git-release-bot-email: "xformer@janeirodigital.com"
+          ###########################################################
+          # maven-args: "-Dmaven.javadoc.skip=true -DskipTests -DskipITs -Dmaven.deploy.skip=true"
+          maven-args: ""
+          ###########################################################
+          ssh-private-key: ${{ secrets.XFORMER_SAI_JAVA_PRIVATE }}
+          ###########################################################
+          gpg-enabled: true
+          gpg-key-id: ${{ secrets.XFORMER_GPG_KEY_ID }}
+          gpg-key: ${{ secrets.XFORMER_GPG_KEY }}
+          ###########################################################
+          # configure nexus repository
+          maven-repo-server-id: xformativ-nexus   # Value of the distributionManagement/repository/id field of the pom.xml
+          maven-repo-server-username: ${{ secrets.XFORMATIV_MAVEN_USERNAME }}
+          maven-repo-server-password: ${{ secrets.XFORMATIV_MAVEN_PASSWORD }}
+
+      ###############################################################
+      # Get the tag created by the previous release step
+      ###############################################################
+      - name: Get previous tag
+        id: previoustag
+        uses: "WyriHaximus/github-action-get-previous-tag@v1"
+
+      ###############################################################
+      # Create a GitHub release from the previous tag
+      ###############################################################
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Tag to create the github release from
+          tag_name: ${{ steps.previoustag.outputs.tag }}
+          # Name of the release (set to the tag)
+          release_name: ${{ steps.previoustag.outputs.tag }}
+          # Summary of the release
+          body: ${{ github.event.inputs.summary }}
+          # Whether this is a draft release or not
+          draft: ${{ github.event.inputs.is_draft_release }}
+          # Whether this is a prerelease or not
+          prerelease: ${{ github.event.inputs.is_prerelease }}
