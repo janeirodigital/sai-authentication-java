@@ -176,6 +176,7 @@ class SolidOidcSessionTests {
         SolidOidcSession.Builder builder = new SolidOidcSession.Builder();
         builder.setHttpClient(httpClient).setSocialAgent(socialAgentId).setApplication(applicationId, true);
         assertEquals(applicationId, builder.getApplicationId());
+        assertNotNull(builder.getClientId());
     }
 
     @Test
@@ -226,6 +227,9 @@ class SolidOidcSessionTests {
         builder.setHttpClient(httpClient).setSocialAgent(socialAgentId).setApplication(applicationId, true).setScope(scopes)
                 .setPrompt(prompt).addRedirect(redirect).prepareCodeRequest();
         assertNotNull(builder.getAuthorizationRequest());
+        assertNotNull(builder.getRequestState());
+        assertNotNull(builder.getRedirect());
+        assertNotNull(builder.getCodeVerifier());
     }
 
     @Test
@@ -310,6 +314,7 @@ class SolidOidcSessionTests {
         builder.processCodeResponse(responseUrl).requestTokens();
         assertNotNull(builder.getAccessToken());
         assertNotNull(builder.getRefreshToken());
+        assertNotNull(builder.getProofFactory());
     }
 
     @Test

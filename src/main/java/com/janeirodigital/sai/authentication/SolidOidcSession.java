@@ -194,7 +194,7 @@ public class SolidOidcSession implements AuthorizedSession {
 
     private void readObject(ObjectInputStream ois) throws ClassNotFoundException, IOException {
         ois.defaultReadObject();
-        try { this.proofFactory = getDPoPProofFactory(this.ecJwk); } catch (SaiAuthenticationException ex) {
+        try { this.proofFactory = getDPoPProofFactory(this.getEcJwk()); } catch (SaiAuthenticationException ex) {
             throw new IOException("Failed to deserialize DPoP proof factory", ex);
         }
     }
@@ -231,7 +231,6 @@ public class SolidOidcSession implements AuthorizedSession {
         private State requestState;
         private List<URL> redirects;
         private URL redirect;
-        private Random random;
         private CodeVerifier codeVerifier;
         private AuthorizationRequest authorizationRequest;
         private AuthorizationCode authorizationCode;
@@ -377,8 +376,8 @@ public class SolidOidcSession implements AuthorizedSession {
             this.codeVerifier = new CodeVerifier();  // Generate a new random 256 bit code verifier for PKCE
             if (this.redirects.size() == 1) { this.redirect = this.redirects.get(0); } else {
                 // Pick a redirect to use at random
-                this.random = new Random();
-                this.redirect = this.redirects.get(this.random.nextInt(this.redirects.size()));
+                Random random = new Random();
+                this.redirect = this.redirects.get(random.nextInt(this.redirects.size()));
             }
             AuthorizationRequest.Builder requestBuilder = new AuthorizationRequest.Builder(new ResponseType(ResponseType.Value.CODE), this.clientId);
             requestBuilder.scope(scope)
@@ -449,7 +448,7 @@ public class SolidOidcSession implements AuthorizedSession {
             Objects.requireNonNull(this.redirects, "Must provide a redirect for the token request");
             Objects.requireNonNull(this.codeVerifier, "Must provide a code verifier for the token request");
             this.ecJwk = getEllipticCurveKey(Curve.P_256);
-            this.proofFactory = getDPoPProofFactory(ecJwk);
+            this.proofFactory = getDPoPProofFactory(this.getEcJwk());
             Tokens tokens = obtainTokens(this.oidcTokenEndpoint, this.clientId, new AuthorizationCodeGrant(this.authorizationCode, urlToUri(this.redirect), this.codeVerifier), this.proofFactory);
             // The access token is not of type DPoP
             if (tokens.getDPoPAccessToken() == null) { throw new SaiAuthenticationException("Access token is not DPoP"); }
