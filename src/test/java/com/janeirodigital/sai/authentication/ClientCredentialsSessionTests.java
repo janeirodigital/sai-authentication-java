@@ -1,6 +1,7 @@
 package com.janeirodigital.sai.authentication;
 
 import com.janeirodigital.mockwebserver.RequestMatchingFixtureDispatcher;
+import com.janeirodigital.sai.httputils.SaiHttpException;
 import com.nimbusds.oauth2.sdk.ErrorObject;
 import com.nimbusds.oauth2.sdk.ParseException;
 import com.nimbusds.oauth2.sdk.TokenErrorResponse;
@@ -72,7 +73,7 @@ class ClientCredentialsSessionTests {
 
     @Test
     @DisplayName("Initialize client credentials builder - oidc provider")
-    void initBuilderOidcProvider() throws SaiAuthenticationException {
+    void initBuilderOidcProvider() throws SaiAuthenticationException, SaiHttpException {
         ClientCredentialsSession.Builder builder = new ClientCredentialsSession.Builder();
         builder.setOidcProvider(oidcProviderId);
         assertEquals(oidcProviderId, builder.getOidcProviderId());
@@ -81,7 +82,7 @@ class ClientCredentialsSessionTests {
 
     @Test
     @DisplayName("Initialize client credentials builder - client identifier")
-    void initBuilderClientIdentifier() throws SaiAuthenticationException {
+    void initBuilderClientIdentifier() throws SaiAuthenticationException, SaiHttpException {
         ClientCredentialsSession.Builder builder = new ClientCredentialsSession.Builder();
         builder.setOidcProvider(oidcProviderId).setClientIdentifier(clientIdentifier);
         assertEquals(clientIdentifier, builder.getClientIdentifier());
@@ -89,7 +90,7 @@ class ClientCredentialsSessionTests {
 
     @Test
     @DisplayName("Initialize client credentials builder - client secret")
-    void initBuilderClientSecret() throws SaiAuthenticationException {
+    void initBuilderClientSecret() throws SaiAuthenticationException, SaiHttpException {
         ClientCredentialsSession.Builder builder = new ClientCredentialsSession.Builder();
         builder.setOidcProvider(oidcProviderId).setClientIdentifier(clientIdentifier).setClientSecret(clientSecret);
         assertEquals(clientSecret, builder.getClientSecret());
@@ -97,7 +98,7 @@ class ClientCredentialsSessionTests {
 
     @Test
     @DisplayName("Initialize solid-oidc builder - scope")
-    void initBuilderScope() throws SaiAuthenticationException {
+    void initBuilderScope() throws SaiAuthenticationException, SaiHttpException {
         ClientCredentialsSession.Builder builder = new ClientCredentialsSession.Builder();
         builder.setOidcProvider(oidcProviderId).setClientIdentifier(clientIdentifier).setClientSecret(clientSecret).setScope(scopes);
         for (String scope : scopes) { assertTrue(builder.getScope().contains(scope)); }
@@ -105,7 +106,7 @@ class ClientCredentialsSessionTests {
 
     @Test
     @DisplayName("Initialize solid-oidc builder - request tokens")
-    void initBuilderRequestTokens() throws SaiAuthenticationException {
+    void initBuilderRequestTokens() throws SaiAuthenticationException, SaiHttpException {
         ClientCredentialsSession.Builder builder = new ClientCredentialsSession.Builder();
         builder.setOidcProvider(oidcProviderId).setClientIdentifier(clientIdentifier).setClientSecret(clientSecret)
                 .setScope(scopes).requestToken();
@@ -114,7 +115,7 @@ class ClientCredentialsSessionTests {
 
     @Test
     @DisplayName("Initialize solid-oidc builder - misc token response failure")
-    void initBuilderRequestTokensResponseFailure() throws SaiAuthenticationException, ParseException {
+    void initBuilderRequestTokensResponseFailure() throws SaiAuthenticationException, ParseException, SaiHttpException {
         ClientCredentialsSession.Builder builder = new ClientCredentialsSession.Builder();
         builder.setOidcProvider(oidcProviderId).setClientIdentifier(clientIdentifier).setClientSecret(clientSecret).setScope(scopes);
         try (MockedStatic<TokenResponse> mockStaticResponse = Mockito.mockStatic(TokenResponse.class)) {
@@ -130,7 +131,7 @@ class ClientCredentialsSessionTests {
 
     @Test
     @DisplayName("Initialize solid-oidc builder - build session")
-    void initBuilderBuildSession() throws SaiAuthenticationException {
+    void initBuilderBuildSession() throws SaiAuthenticationException, SaiHttpException {
         ClientCredentialsSession.Builder builder = new ClientCredentialsSession.Builder();
         ClientCredentialsSession session = builder.setSocialAgent(socialAgentId)
                                                   .setApplication(applicationId)
@@ -157,7 +158,7 @@ class ClientCredentialsSessionTests {
 
     @Test
     @DisplayName("Initialize solid-oidc builder - build session - no identifiers")
-    void initBuilderBuildSessionNoIds() throws SaiAuthenticationException {
+    void initBuilderBuildSessionNoIds() throws SaiAuthenticationException, SaiHttpException {
         ClientCredentialsSession.Builder builder = new ClientCredentialsSession.Builder();
         ClientCredentialsSession session = builder.setOidcProvider(oidcProviderId)
                                                   .setClientIdentifier(clientIdentifier)
@@ -173,7 +174,7 @@ class ClientCredentialsSessionTests {
 
     @Test
     @DisplayName("Refresh client credentials session")
-    void refreshSession() throws SaiAuthenticationException {
+    void refreshSession() throws SaiAuthenticationException, SaiHttpException {
         ClientCredentialsSession.Builder builder = new ClientCredentialsSession.Builder();
         ClientCredentialsSession session = builder.setOidcProvider(oidcProviderId)
                 .setClientIdentifier(clientIdentifier)
@@ -186,6 +187,4 @@ class ClientCredentialsSessionTests {
         session.refresh();
         assertNotEquals(original, session.getAccessToken());
     }
-
-
 }

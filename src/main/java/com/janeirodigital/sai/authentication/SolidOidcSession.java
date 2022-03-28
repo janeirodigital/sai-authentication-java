@@ -258,7 +258,7 @@ public class SolidOidcSession implements AuthorizedSession {
          * @param socialAgentId URL of the SocialAgent Identity
          * @return SolidOidcSession.Builder
          */
-        public Builder setSocialAgent(URL socialAgentId) throws SaiAuthenticationException {
+        public Builder setSocialAgent(URL socialAgentId) throws SaiAuthenticationException, SaiHttpException {
             Objects.requireNonNull(this.httpClient, "Must provide an http client to build a Solid OIDC session");
             Objects.requireNonNull(socialAgentId, "Must provide a Social Agent identifier to build a Solid OIDC session");
             this.socialAgentId = socialAgentId;
@@ -272,12 +272,8 @@ public class SolidOidcSession implements AuthorizedSession {
             if (!metadata.getClaims().contains("webid") || !metadata.getClaims().contains("client_id")) {
                 throw new SaiAuthenticationException("OpenID Provider " + this.oidcProviderId.toString() + "does not support the necessary claims for solid-oidc");
             }
-            try {
-                this.oidcAuthorizationEndpoint = uriToUrl(metadata.getAuthorizationEndpointURI());
-                this.oidcTokenEndpoint = uriToUrl(metadata.getTokenEndpointURI());
-            } catch (SaiHttpException ex) {
-                throw new SaiAuthenticationException("Failed to process endpoint", ex);
-            }
+            this.oidcAuthorizationEndpoint = uriToUrl(metadata.getAuthorizationEndpointURI());
+            this.oidcTokenEndpoint = uriToUrl(metadata.getTokenEndpointURI());
             return this;
         }
 
@@ -394,13 +390,9 @@ public class SolidOidcSession implements AuthorizedSession {
          * Returns the prepared authorization code request URL
          * @return URL of the generated authorization code request
          */
-        public URL getCodeRequestUrl() throws SaiAuthenticationException {
+        public URL getCodeRequestUrl() throws SaiHttpException {
             Objects.requireNonNull(this.authorizationRequest, "Cannot get code request URL before the code request is prepared");
-            try {
-                return uriToUrl(this.authorizationRequest.toURI());
-            } catch (SaiHttpException ex) {
-                throw new SaiAuthenticationException("Failed to process authorization request uri", ex);
-            }
+            return uriToUrl(this.authorizationRequest.toURI());
         }
 
         /**

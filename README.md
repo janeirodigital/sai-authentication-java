@@ -1,4 +1,4 @@
-# sai-java
+# sai-authentication-java
 
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=janeirodigital_sai-authentication-java&metric=coverage)](https://sonarcloud.io/summary/new_code?id=janeirodigital_sai-authentication-java)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=janeirodigital_sai-authentication-java&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=janeirodigital_sai-authentication-java)

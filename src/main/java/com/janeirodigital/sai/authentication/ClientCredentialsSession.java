@@ -38,7 +38,7 @@ public class ClientCredentialsSession implements AuthorizedSession {
     private AccessToken accessToken;
 
     private ClientCredentialsSession(URL socialAgentId, URL applicationId, String clientIdentifier, String clientSecret, URL oidcProviderId,
-                                     URL oidcTokenEndpoint, Scope scope, AccessToken accessToken) throws SaiAuthenticationException {
+                                     URL oidcTokenEndpoint, Scope scope, AccessToken accessToken) throws SaiHttpException {
         Objects.requireNonNull(clientIdentifier, "Must provide an OIDC client identifier to construct a client credentials session");
         Objects.requireNonNull(clientSecret, "Must provide an OIDC client secret to construct a client credentials session");
         Objects.requireNonNull(oidcProviderId, "Must provide an OIDC provider identifier to construct a client credentials session");
@@ -51,19 +51,15 @@ public class ClientCredentialsSession implements AuthorizedSession {
         this.oidcTokenEndpoint = oidcTokenEndpoint;
         this.scope = scope;
         this.accessToken = accessToken;
-        try {
-            if (socialAgentId == null) {
-                this.socialAgentId = stringToUrl("https://social.local/" + clientIdentifier);
-            } else {
-                this.socialAgentId = socialAgentId;
-            }
-            if (applicationId == null) {
-                this.applicationId = stringToUrl("https://clients.local/" + clientIdentifier);
-            } else {
-                this.applicationId = applicationId;
-            }
-        } catch (SaiHttpException ex) {
-            throw new SaiAuthenticationException("Failed to process agent identifier", ex);
+        if (socialAgentId == null) {
+            this.socialAgentId = stringToUrl("https://social.local/" + clientIdentifier);
+        } else {
+            this.socialAgentId = socialAgentId;
+        }
+        if (applicationId == null) {
+            this.applicationId = stringToUrl("https://clients.local/" + clientIdentifier);
+        } else {
+            this.applicationId = applicationId;
         }
     }
 
@@ -188,13 +184,11 @@ public class ClientCredentialsSession implements AuthorizedSession {
          * @param oidcProviderId URL of the oidc provider
          * @return ClientCredentialsSession.Builder
          */
-        public Builder setOidcProvider(URL oidcProviderId) throws SaiAuthenticationException {
+        public Builder setOidcProvider(URL oidcProviderId) throws SaiAuthenticationException, SaiHttpException {
             Objects.requireNonNull(oidcProviderId, "Must provide an oidc provider URL to build client credentials session");
             this.oidcProviderId = oidcProviderId;
             OIDCProviderMetadata metadata = getOIDCProviderConfiguration(this.oidcProviderId);
-            try { this.oidcTokenEndpoint = uriToUrl(metadata.getTokenEndpointURI()); } catch (SaiHttpException ex) {
-                throw new SaiAuthenticationException("Failed to process token endpoint uri", ex);
-            }
+            this.oidcTokenEndpoint = uriToUrl(metadata.getTokenEndpointURI());
             return this;
         }
 
@@ -252,7 +246,7 @@ public class ClientCredentialsSession implements AuthorizedSession {
          * successfully.
          * @return {@link ClientCredentialsSession}
          */
-        public ClientCredentialsSession build() throws SaiAuthenticationException {
+        public ClientCredentialsSession build() throws SaiHttpException {
             Objects.requireNonNull(this.clientIdentifier, "Must provide an OIDC client identifier to build a client credentials session");
             Objects.requireNonNull(this.clientSecret, "Must provide an OIDC client secret to build a client credentials session");
             Objects.requireNonNull(this.oidcProviderId, "Must provide an OIDC provider id to build a client credentials session");
