@@ -50,7 +50,7 @@ jobs:
       # Generate JavaDocs via maven
       ###############################################################
       - name: Generate JavaDocs
-        run: mvn -B site --file pom.xml -s ${{ github.workspace }}/settings.xml
+        run: mvn -B javadoc:javadoc --file pom.xml -s ${{ github.workspace }}/settings.xml
         env:
           MAVEN_USERNAME: ${{ secrets.XFORMATIV_MAVEN_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.XFORMATIV_MAVEN_PASSWORD }}

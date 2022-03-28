@@ -1,0 +1,10 @@
+statusCode : 200
+delay: 0
+headers:
+  - 'Content-type:text/plain'
+body: >
+
+  Application
+  Interoperability
+  Is
+  Cool
