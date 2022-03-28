@@ -83,7 +83,7 @@ public interface AuthorizedSession extends Serializable {
             BigInteger no = new BigInteger(1, messageDigest);
             return no.toString(16);
         } catch (NoSuchAlgorithmException ex) {
-            throw new SaiAuthenticationException("Failed to generate identifier for authorized session: " + ex.getMessage());
+            throw new SaiAuthenticationException("Failed to generate identifier for authorized session", ex);
         }
     }
 

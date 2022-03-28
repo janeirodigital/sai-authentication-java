@@ -410,7 +410,7 @@ public class SolidOidcSession implements AuthorizedSession {
                 // Parse the authorization response from the callback URI
                 response = AuthorizationResponse.parse(urlToUri(redirectResponse));
             } catch (ParseException ex) {
-                throw new SaiAuthenticationException("Failed to parse response to authorization code request: " + ex.getMessage());
+                throw new SaiAuthenticationException("Failed to parse response to authorization code request", ex);
             }
             // Check that the returned state parameter matches the original
             if (!this.requestState.equals(response.getState())) {

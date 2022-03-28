@@ -73,7 +73,7 @@ public class AuthorizedSessionHelper {
             metadata = OIDCProviderMetadata.parse(httpResponse.getContentAsJSONObject());
             if (!issuer.equals(metadata.getIssuer())) { throw new SaiAuthenticationException("Issuer mismatch: Supplied issuer " + issuer.getValue() + "is a different value than that received from OP: " + metadata.getIssuer().getValue()); }
         } catch (IOException | ParseException| SaiAuthenticationException ex) {
-            throw new SaiAuthenticationException("Unable to lookup OpenID Provider configuration for " + providerUrl +": " + ex.getMessage());
+            throw new SaiAuthenticationException("Unable to lookup OpenID Provider configuration for " + providerUrl, ex);
         }
         return metadata;
     }
