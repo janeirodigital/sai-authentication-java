@@ -1,0 +1,18 @@
+statusCode : 200
+delay: 0
+headers:
+  - 'Content-type:text/turtle'
+body: >
+
+  @prefix foaf: <http://xmlns.com/foaf/0.1/>.
+  @prefix solid: <http://www.w3.org/ns/solid/terms#>.
+
+  <>
+      a foaf:PersonalProfileDocument;
+      foaf:maker <${SERVER_BASE}/alice/id#me>;
+      foaf:primaryTopic <${SERVER_BASE}/alice/id#me>.
+
+  <${SERVER_BASE}/alice/id#me>
+
+      solid:oidcIssuer <${SERVER_BASE}/op/>;
+      a foaf:Person.

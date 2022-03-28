@@ -21,9 +21,11 @@
         <maven-javadoc.version>3.3.1</maven-javadoc.version>
         <snakeyaml.version>1.30</snakeyaml.version>
         <mockito.version>4.3.1</mockito.version>
-        <maven-site-plugin.version>3.10.0</maven-site-plugin.version>
         <maven-release-plugin.version>3.0.0-M5</maven-release-plugin.version>
-        <maven-project-info-reports-plugin.version>3.1.2</maven-project-info-reports-plugin.version>
+        <sai-http-utils.version>0.9.1</sai-http-utils.version>
+        <sai-rdf-utils.version>0.9.1</sai-rdf-utils.version>
+        <mockwebserverplus-ext.version>0.9.3</mockwebserverplus-ext.version>
+        <nimbus.version>9.24</nimbus.version>
         <project.scm.id>github</project.scm.id>
         <lombok-maven-plugin.version>1.18.20.0</lombok-maven-plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -41,20 +43,65 @@
         <tag>HEAD</tag>
     </scm>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-api</artifactId>
-                <version>${slf4j.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.projectlombok</groupId>
-                <artifactId>lombok</artifactId>
-                <version>${lombok.version}</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.nimbusds</groupId>
+            <artifactId>oauth2-oidc-sdk</artifactId>
+            <version>${nimbus.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.janeirodigital</groupId>
+            <artifactId>sai-http-utils-java</artifactId>
+            <version>${sai-http-utils.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>${slf4j.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-inline</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.janeirodigital</groupId>
+            <artifactId>mockwebserverplus-ext</artifactId>
+            <version>${mockwebserverplus-ext.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 
     <build>
         <plugins>
@@ -72,6 +119,11 @@
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -93,17 +145,14 @@
                             <goal>prepare-agent</goal>
                         </goals>
                     </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-site-plugin</artifactId>
-                <version>${maven-site-plugin.version}</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-project-info-reports-plugin</artifactId>
-                <version>${maven-project-info-reports-plugin.version}</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -112,34 +161,6 @@
             </plugin>
         </plugins>
     </build>
-
-    <reporting>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>${maven-javadoc.version}</version>
-                <configuration>
-                    <sourcepath>target/delombok;</sourcepath>
-                </configuration>
-                <reportSets>
-                    <reportSet>
-                        <id>aggregate</id>
-                        <inherited>false</inherited>
-                        <reports>
-                            <report>aggregate</report>
-                        </reports>
-                    </reportSet>
-                    <reportSet>
-                        <id>default</id>
-                        <reports>
-                            <report>javadoc</report>
-                        </reports>
-                    </reportSet>
-                </reportSets>
-            </plugin>
-        </plugins>
-    </reporting>
 
     <repositories>
         <repository>

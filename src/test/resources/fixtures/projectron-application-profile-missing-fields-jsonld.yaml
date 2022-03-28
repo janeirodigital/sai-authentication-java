@@ -1,0 +1,26 @@
+statusCode : 200
+delay: 0
+headers:
+  - 'Content-type:application/ld+json'
+body: >
+
+  {
+    "@context": [
+        "https://www.w3.org/ns/solid/oidc-context.jsonld",
+        "https://solid.github.io/data-interoperability-panel/specification/interop.jsonld"
+    ],
+    "client_id": "${SERVER_BASE}/projectron/id",
+    "client_name": "Projectron",
+    "post_logout_redirect_uris": [ "${SERVER_BASE}/logout" ],
+    "client_uri": "http://projectron.example/",
+    "logo_uri": "http://projectron.example/logo.png",
+    "tos_uri": "http://projectron.example/tos.html",
+    "scope": "openid offline_access profile",
+    "grant_types": [ "refresh_token", "authorization_code" ],
+    "response_types": [ "code" ],
+    "default_max_age": 3600,
+    "require_auth_time": true,
+    "application_description": "Best project management ever",
+    "application_author": "http://acme.example/id",
+    "has_access_need_group": [ "http://localhost/projectron/access#group1", "http://localhost/projectron/access#group2" ]
+  }
