@@ -91,7 +91,7 @@ public class AuthorizedSessionHelper {
         try (Response response = getRequiredRdfResource(httpClient, clientId)) {
             Model dataset = getRdfModelFromResponse(response);
             return getResourceFromModel(dataset, clientId);
-        } catch (SaiHttpException | SaiHttpNotFoundException | SaiRdfException ex) {
+        } catch (SaiHttpException | SaiHttpNotFoundException ex) {
             throw new SaiAuthenticationException("Unable to load client identifier document for " + clientId, ex);
         }
     }
