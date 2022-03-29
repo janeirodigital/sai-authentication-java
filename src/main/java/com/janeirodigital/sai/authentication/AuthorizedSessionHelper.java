@@ -91,7 +91,7 @@ public class AuthorizedSessionHelper {
         try (Response response = getRequiredRdfResource(httpClient, clientId)) {
             Model dataset = getRdfModelFromResponse(response);
             return getResourceFromModel(dataset, clientId);
-        } catch (SaiHttpException | SaiHttpNotFoundException | SaiRdfException ex) {
+        } catch (SaiHttpException | SaiHttpNotFoundException ex) {
             throw new SaiAuthenticationException("Unable to load client identifier document for " + clientId, ex);
         }
     }
@@ -164,7 +164,7 @@ public class AuthorizedSessionHelper {
      * @return OkHttp Response
      * @throws SaiAuthenticationException
      */
-    public static Response putProtectedRdfResource(AuthorizedSession authorizedSession, OkHttpClient httpClient, URL url, Resource resource, ContentType contentType, String jsonLdContext, Headers headers) throws SaiAuthenticationException, SaiRdfException, SaiHttpException {
+    public static Response putProtectedRdfResource(AuthorizedSession authorizedSession, OkHttpClient httpClient, URL url, Resource resource, ContentType contentType, String jsonLdContext, Headers headers) throws SaiAuthenticationException, SaiHttpException {
         Objects.requireNonNull(authorizedSession, "Must provide an authorized session to access protected resource");
         headers = setAuthorizationHeaders(authorizedSession, PUT, url, headers);
         return putRdfResource(httpClient, url, resource, contentType, jsonLdContext, headers);
@@ -181,7 +181,7 @@ public class AuthorizedSessionHelper {
      * @return OkHttp Response
      * @throws SaiAuthenticationException
      */
-    public static Response putProtectedRdfResource(AuthorizedSession authorizedSession, OkHttpClient httpClient, URL url, Resource resource, ContentType contentType) throws SaiAuthenticationException, SaiRdfException, SaiHttpException {
+    public static Response putProtectedRdfResource(AuthorizedSession authorizedSession, OkHttpClient httpClient, URL url, Resource resource, ContentType contentType) throws SaiAuthenticationException, SaiHttpException {
         return putProtectedRdfResource(authorizedSession, httpClient, url, resource, contentType, null, null);
     }
 
@@ -197,7 +197,7 @@ public class AuthorizedSessionHelper {
      * @return OkHttp Response
      * @throws SaiAuthenticationException
      */
-    public static Response putProtectedRdfResource(AuthorizedSession authorizedSession, OkHttpClient httpClient, URL url, Resource resource, ContentType contentType, Headers headers) throws SaiAuthenticationException, SaiRdfException, SaiHttpException {
+    public static Response putProtectedRdfResource(AuthorizedSession authorizedSession, OkHttpClient httpClient, URL url, Resource resource, ContentType contentType, Headers headers) throws SaiAuthenticationException, SaiHttpException {
         return putProtectedRdfResource(authorizedSession, httpClient, url, resource, contentType, null, headers);
     }
 
@@ -213,7 +213,7 @@ public class AuthorizedSessionHelper {
      * @return OkHttp Response
      * @throws SaiAuthenticationException
      */
-    public static Response putProtectedRdfResource(AuthorizedSession authorizedSession, OkHttpClient httpClient, URL url, Resource resource, ContentType contentType, String jsonLdContext) throws SaiAuthenticationException, SaiRdfException, SaiHttpException {
+    public static Response putProtectedRdfResource(AuthorizedSession authorizedSession, OkHttpClient httpClient, URL url, Resource resource, ContentType contentType, String jsonLdContext) throws SaiAuthenticationException, SaiHttpException {
         return putProtectedRdfResource(authorizedSession, httpClient, url, resource, contentType, jsonLdContext, null);
     }
 

@@ -20,7 +20,7 @@
         <snakeyaml.version>1.30</snakeyaml.version>
         <mockito.version>4.3.1</mockito.version>
         <maven-release-plugin.version>3.0.0-M5</maven-release-plugin.version>
-        <sai-http-utils.version>0.9.1</sai-http-utils.version>
+        <sai-http-utils.version>0.9.2</sai-http-utils.version>
         <sai-rdf-utils.version>0.9.1</sai-rdf-utils.version>
         <mockwebserverplus-ext.version>0.9.3</mockwebserverplus-ext.version>
         <nimbus.version>9.24</nimbus.version>
