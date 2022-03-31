@@ -35,29 +35,28 @@ public class ClientCredentialsSession implements AuthorizedSession {
     private final Scope scope;
     private AccessToken accessToken;
 
-    private ClientCredentialsSession(URI socialAgentId, URI applicationId, String clientIdentifier, String clientSecret, URI oidcProviderId,
-                                     URI oidcTokenEndpoint, Scope scope, AccessToken accessToken) {
-        Objects.requireNonNull(clientIdentifier, "Must provide an OIDC client identifier to construct a client credentials session");
-        Objects.requireNonNull(clientSecret, "Must provide an OIDC client secret to construct a client credentials session");
-        Objects.requireNonNull(oidcProviderId, "Must provide an OIDC provider identifier to construct a client credentials session");
-        Objects.requireNonNull(oidcTokenEndpoint, "Must provide OIDC token endpoint to construct a client credentials session");
-        Objects.requireNonNull(scope, "Must provide scope to construct a client credentials session");
-        Objects.requireNonNull(accessToken, "Must provide an access token to construct a client credentials session");
-        this.clientIdentifier = clientIdentifier;
-        this.clientSecret = clientSecret;
-        this.oidcProviderId = oidcProviderId;
-        this.oidcTokenEndpoint = oidcTokenEndpoint;
-        this.scope = scope;
-        this.accessToken = accessToken;
-        if (socialAgentId == null) {
-            this.socialAgentId = URI.create("https://social.local/" + clientIdentifier);
+    private ClientCredentialsSession(Builder builder) {
+        Objects.requireNonNull(builder.clientIdentifier, "Must provide an OIDC client identifier to construct a client credentials session");
+        Objects.requireNonNull(builder.clientSecret, "Must provide an OIDC client secret to construct a client credentials session");
+        Objects.requireNonNull(builder.oidcProviderId, "Must provide an OIDC provider identifier to construct a client credentials session");
+        Objects.requireNonNull(builder.oidcTokenEndpoint, "Must provide OIDC token endpoint to construct a client credentials session");
+        Objects.requireNonNull(builder.scope, "Must provide scope to construct a client credentials session");
+        Objects.requireNonNull(builder.accessToken, "Must provide an access token to construct a client credentials session");
+        this.clientIdentifier = builder.clientIdentifier;
+        this.clientSecret = builder.clientSecret;
+        this.oidcProviderId = builder.oidcProviderId;
+        this.oidcTokenEndpoint = builder.oidcTokenEndpoint;
+        this.scope = builder.scope;
+        this.accessToken = builder.accessToken;
+        if (builder.socialAgentId == null) {
+            this.socialAgentId = URI.create("https://social.local/" + this.clientIdentifier);
         } else {
-            this.socialAgentId = socialAgentId;
+            this.socialAgentId = builder.socialAgentId;
         }
-        if (applicationId == null) {
-            this.applicationId = URI.create("https://clients.local/" + clientIdentifier);
+        if (builder.applicationId == null) {
+            this.applicationId = URI.create("https://clients.local/" + this.clientIdentifier);
         } else {
-            this.applicationId = applicationId;
+            this.applicationId = builder.applicationId;
         }
     }
 
@@ -251,7 +250,7 @@ public class ClientCredentialsSession implements AuthorizedSession {
             Objects.requireNonNull(this.oidcTokenEndpoint, "Cannot build a client credentials session without OIDC token endpoint");
             Objects.requireNonNull(this.scope, "Must provide scope to build client credentials session");
             Objects.requireNonNull(this.accessToken, "Cannot build a client credentials session without an access token");
-            return new ClientCredentialsSession(this.socialAgentId, this.applicationId, this.clientIdentifier, this.clientSecret, this.oidcProviderId, this.oidcTokenEndpoint, this.scope, this.accessToken);
+            return new ClientCredentialsSession(this);
         }
     }
 }

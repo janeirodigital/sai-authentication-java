@@ -57,25 +57,24 @@ public class SolidOidcSession implements AuthorizedSession {
     private final ECKey ecJwk;
     private transient DPoPProofFactory proofFactory;
 
-    protected SolidOidcSession(URI socialAgentId, URI applicationId, URI oidcProviderId, URI oidcAuthorizationEndpoint,
-                               URI oidcTokenEndpoint, AccessToken accessToken, RefreshToken refreshToken, ECKey ecJwk, DPoPProofFactory proofFactory) {
-        Objects.requireNonNull(socialAgentId, "Must provide a Social Agent identifier to construct a Solid OIDC session");
-        Objects.requireNonNull(applicationId, "Must provide an application identifier to construct a Solid OIDC session");
-        Objects.requireNonNull(oidcProviderId, "Must provide an OIDC provider identifier to construct a Solid OIDC session");
-        Objects.requireNonNull(oidcAuthorizationEndpoint, "Must provide OIDC authorization endpoint to construct a Solid OIDC session");
-        Objects.requireNonNull(oidcTokenEndpoint, "Must provide OIDC token endpoint to construct a Solid OIDC session");
-        Objects.requireNonNull(accessToken, "Must provide an access token to construct a Solid OIDC session");
-        Objects.requireNonNull(ecJwk, "Must provide an elliptic curve key to construct a Solid OIDC session");
-        Objects.requireNonNull(proofFactory, "Must provide a DPoP proof factory to construct a Solid OIDC session");
-        this.socialAgentId = socialAgentId;
-        this.applicationId = applicationId;
-        this.oidcProviderId = oidcProviderId;
-        this.oidcAuthorizationEndpoint = oidcAuthorizationEndpoint;
-        this.oidcTokenEndpoint = oidcTokenEndpoint;
-        this.accessToken = accessToken;
-        this.refreshToken = refreshToken;
-        this.ecJwk = ecJwk;
-        this.proofFactory = proofFactory;
+    protected SolidOidcSession(Builder builder) {
+        Objects.requireNonNull(builder.socialAgentId, "Must provide a Social Agent identifier to construct a Solid OIDC session");
+        Objects.requireNonNull(builder.applicationId, "Must provide an application identifier to construct a Solid OIDC session");
+        Objects.requireNonNull(builder.oidcProviderId, "Must provide an OIDC provider identifier to construct a Solid OIDC session");
+        Objects.requireNonNull(builder.oidcAuthorizationEndpoint, "Must provide OIDC authorization endpoint to construct a Solid OIDC session");
+        Objects.requireNonNull(builder.oidcTokenEndpoint, "Must provide OIDC token endpoint to construct a Solid OIDC session");
+        Objects.requireNonNull(builder.accessToken, "Must provide an access token to construct a Solid OIDC session");
+        Objects.requireNonNull(builder.ecJwk, "Must provide an elliptic curve key to construct a Solid OIDC session");
+        Objects.requireNonNull(builder.proofFactory, "Must provide a DPoP proof factory to construct a Solid OIDC session");
+        this.socialAgentId = builder.socialAgentId;
+        this.applicationId = builder.applicationId;
+        this.oidcProviderId = builder.oidcProviderId;
+        this.oidcAuthorizationEndpoint = builder.oidcAuthorizationEndpoint;
+        this.oidcTokenEndpoint = builder.oidcTokenEndpoint;
+        this.accessToken = builder.accessToken;
+        this.refreshToken = builder.refreshToken;
+        this.ecJwk = builder.ecJwk;
+        this.proofFactory = builder.proofFactory;
     }
 
     /**
@@ -460,7 +459,7 @@ public class SolidOidcSession implements AuthorizedSession {
             Objects.requireNonNull(this.accessToken, "Cannot build a Solid OIDC session without an access token");
             Objects.requireNonNull(this.ecJwk, "Cannot build a Solid OIDC session without an elliptic curve key");
             Objects.requireNonNull(this.proofFactory, "Cannot build a Solid OIDC session without a proof factory");
-            return new SolidOidcSession(this.socialAgentId, this.applicationId, this.oidcProviderId, this.oidcAuthorizationEndpoint, this.oidcTokenEndpoint, this.accessToken, this.refreshToken, this.ecJwk, this.proofFactory);
+            return new SolidOidcSession(this);
         }
 
     }
