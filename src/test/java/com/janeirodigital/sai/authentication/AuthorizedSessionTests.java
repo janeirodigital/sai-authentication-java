@@ -4,8 +4,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -13,15 +12,15 @@ import static org.mockito.Mockito.*;
 
 class AuthorizedSessionTests {
 
-    private static URL oidcProviderId;
-    private static URL socialAgentId;
-    private static URL applicationId;
+    private static URI oidcProviderId;
+    private static URI socialAgentId;
+    private static URI applicationId;
 
     @BeforeAll
-    static void beforeAll() throws MalformedURLException {
-        oidcProviderId = new URL("https://op.example/");
-        socialAgentId = new URL("https://acme.example/id#org");
-        applicationId = new URL("https://projectron.example/id#app");
+    static void beforeAll() {
+        oidcProviderId = URI.create("https://op.example/");
+        socialAgentId = URI.create("https://acme.example/id#org");
+        applicationId = URI.create("https://projectron.example/id#app");
     }
 
     @Test

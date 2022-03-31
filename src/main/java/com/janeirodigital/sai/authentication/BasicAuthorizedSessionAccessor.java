@@ -2,7 +2,7 @@ package com.janeirodigital.sai.authentication;
 
 import lombok.extern.slf4j.Slf4j;
 
-import java.net.URL;
+import java.net.URI;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -45,7 +45,7 @@ public class BasicAuthorizedSessionAccessor implements AuthorizedSessionAccessor
     }
 
     @Override
-    public AuthorizedSession get(URL socialAgentId, URL applicationId, URL oidcProviderId) throws SaiAuthenticationException {
+    public AuthorizedSession get(URI socialAgentId, URI applicationId, URI oidcProviderId) throws SaiAuthenticationException {
         String identifier = AuthorizedSession.generateId(DIGEST_ALGORITHM, socialAgentId, applicationId, oidcProviderId);
         return this.sessions.get(identifier);
     }

@@ -1,7 +1,6 @@
 package com.janeirodigital.sai.authentication;
 
 import com.janeirodigital.sai.httputils.HttpMethod;
-import com.janeirodigital.sai.httputils.SaiHttpException;
 import com.janeirodigital.sai.rdfutils.RdfUtils;
 import com.janeirodigital.sai.rdfutils.SaiRdfException;
 import com.janeirodigital.sai.rdfutils.SaiRdfNotFoundException;
@@ -29,7 +28,7 @@ import org.apache.jena.rdf.model.Resource;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.net.URL;
+import java.net.URI;
 import java.util.*;
 
 import static com.janeirodigital.sai.authentication.AuthorizedSessionHelper.*;
@@ -38,8 +37,6 @@ import static com.janeirodigital.sai.authentication.SolidOidcVocabulary.SOLID_OI
 import static com.janeirodigital.sai.httputils.HttpHeader.AUTHORIZATION;
 import static com.janeirodigital.sai.httputils.HttpHeader.DPOP;
 import static com.janeirodigital.sai.httputils.HttpMethod.POST;
-import static com.janeirodigital.sai.httputils.HttpUtils.uriToUrl;
-import static com.janeirodigital.sai.httputils.HttpUtils.urlToUri;
 import static com.janeirodigital.sai.rdfutils.RdfUtils.getRequiredStringObject;
 
 /**
@@ -50,18 +47,18 @@ import static com.janeirodigital.sai.rdfutils.RdfUtils.getRequiredStringObject;
 @Getter
 public class SolidOidcSession implements AuthorizedSession {
 
-    private final URL socialAgentId;
-    private final URL applicationId;
-    private final URL oidcProviderId;
-    private final URL oidcTokenEndpoint;
-    private final URL oidcAuthorizationEndpoint;
+    private final URI socialAgentId;
+    private final URI applicationId;
+    private final URI oidcProviderId;
+    private final URI oidcTokenEndpoint;
+    private final URI oidcAuthorizationEndpoint;
     private AccessToken accessToken;
     private RefreshToken refreshToken;
     private final ECKey ecJwk;
     private transient DPoPProofFactory proofFactory;
 
-    protected SolidOidcSession(URL socialAgentId, URL applicationId, URL oidcProviderId, URL oidcAuthorizationEndpoint,
-                               URL oidcTokenEndpoint, AccessToken accessToken, RefreshToken refreshToken, ECKey ecJwk, DPoPProofFactory proofFactory) {
+    protected SolidOidcSession(URI socialAgentId, URI applicationId, URI oidcProviderId, URI oidcAuthorizationEndpoint,
+                               URI oidcTokenEndpoint, AccessToken accessToken, RefreshToken refreshToken, ECKey ecJwk, DPoPProofFactory proofFactory) {
         Objects.requireNonNull(socialAgentId, "Must provide a Social Agent identifier to construct a Solid OIDC session");
         Objects.requireNonNull(applicationId, "Must provide an application identifier to construct a Solid OIDC session");
         Objects.requireNonNull(oidcProviderId, "Must provide an OIDC provider identifier to construct a Solid OIDC session");
@@ -84,18 +81,18 @@ public class SolidOidcSession implements AuthorizedSession {
     /**
      * Generates a map of HTTP Authorization headers that can be use to make authorized requests
      * using the session. DPoP requires a proof to be created for each request based on the
-     * <code>method</code> and target <code>url</code>.
+     * <code>method</code> and target <code>uri</code>.
      * @param method HTTP method of the request
-     * @param url Target URL of the request
+     * @param uri Target URI of the request
      * @return Map of HTTP Authorization headers
      * @throws SaiAuthenticationException
      */
     @Override
-    public Map<String, String> toHttpHeaders(HttpMethod method, URL url) throws SaiAuthenticationException {
+    public Map<String, String> toHttpHeaders(HttpMethod method, URI uri) throws SaiAuthenticationException {
         Objects.requireNonNull(method, "Must provide the HTTP method of the request to generate headers for");
-        Objects.requireNonNull(url, "Must provide the target URL of the request to generate headers for");
+        Objects.requireNonNull(uri, "Must provide the target URI of the request to generate headers for");
         Objects.requireNonNull(this.accessToken, "Cannot generate authorization headers for an uninitialized access token");
-        SignedJWT proof = getProof(this.proofFactory, method, url);
+        SignedJWT proof = getProof(this.proofFactory, method, uri);
         return Map.of(AUTHORIZATION.getValue(), "DPoP " + this.accessToken.getValue(), DPOP.getValue(), proof.serialize());
     }
 
@@ -126,19 +123,19 @@ public class SolidOidcSession implements AuthorizedSession {
 
     /**
      * Gets the required DPoP proof that must be created for each request based on the
-     * <code>method</code> and target <code>url</code>.
+     * <code>method</code> and target <code>uri</code>.
      * @param proofFactory DPoP proof factory
      * @param method HTTP method of the request
-     * @param url Target URL of the request
+     * @param uri Target URI of the request
      * @return DPoP proof
      * @throws SaiAuthenticationException
      */
-    protected static SignedJWT getProof(DPoPProofFactory proofFactory, HttpMethod method, URL url) throws SaiAuthenticationException {
+    protected static SignedJWT getProof(DPoPProofFactory proofFactory, HttpMethod method, URI uri) throws SaiAuthenticationException {
         Objects.requireNonNull(proofFactory, "Must provide a DPoP proof factory to get DPoP proof");
         Objects.requireNonNull(method, "Must provide the HTTP method of the request to generate DPoP proof");
-        Objects.requireNonNull(url, "Must provide the target URL of the request to generate DPoP proof");
+        Objects.requireNonNull(uri, "Must provide the target URI of the request to generate DPoP proof");
         try {
-            return proofFactory.createDPoPJWT(method.getValue(), urlToUri(url));
+            return proofFactory.createDPoPJWT(method.getValue(), uri);
         } catch (JOSEException ex) {
             throw new SaiAuthenticationException("Unable to create DPoP proof", ex);
         }
@@ -168,19 +165,19 @@ public class SolidOidcSession implements AuthorizedSession {
     /**
      * Post a token request to the token endpoint provided in <code>oidcProviderMetadata</code>. Used in
      * both the initial token request as well as in subsequent token refreshes.
-     * @param oidcTokenEndpoint URL of the oidc token endpoint
+     * @param oidcTokenEndpoint URI of the oidc token endpoint
      * @param clientId client identifier
      * @param grant authorization grant
      * @param proofFactory DPoP proof factory
      * @return Tokens object containing requested tokens
      * @throws SaiAuthenticationException
      */
-    protected static Tokens obtainTokens(URL oidcTokenEndpoint, ClientID clientId, AuthorizationGrant grant, DPoPProofFactory proofFactory) throws SaiAuthenticationException {
+    protected static Tokens obtainTokens(URI oidcTokenEndpoint, ClientID clientId, AuthorizationGrant grant, DPoPProofFactory proofFactory) throws SaiAuthenticationException {
         TokenRequest request;
-        request = new TokenRequest(urlToUri(oidcTokenEndpoint), clientId, grant);
+        request = new TokenRequest(oidcTokenEndpoint, clientId, grant);
         HTTPRequest httpRequest = request.toHTTPRequest();
         httpRequest.setAccept("*/*");
-        SignedJWT proof = getProof(proofFactory, POST, httpRequest.getURL());
+        SignedJWT proof = getProof(proofFactory, POST, httpRequest.getURI());
         httpRequest.setDPoP(proof);
         TokenResponse response;
         try {
@@ -204,14 +201,14 @@ public class SolidOidcSession implements AuthorizedSession {
      * in a particular order to establish the Solid-OIDC session successfully.<br>
      * <ol>
      *     <li>{@link #setHttpClient(OkHttpClient)}</li>
-     *     <li>{@link #setSocialAgent(URL)}</li>
-     *     <li>{@link #setApplication(URL)}</li>
+     *     <li>{@link #setSocialAgent(URI)}</li>
+     *     <li>{@link #setApplication(URI)}</li>
      *     <li>{@link #setScope(List)}</li>
      *     <li>{@link #setPrompt(Prompt)}</li>
-     *     <li>{@link #addRedirect(URL)}</li>
+     *     <li>{@link #addRedirect(URI)}</li>
      *     <li>{@link #prepareCodeRequest()}</li>
-     *     <li>{@link #getCodeRequestUrl()}</li>
-     *     <li>{@link #processCodeResponse(URL)}</li>
+     *     <li>{@link #getCodeRequestUri()}</li>
+     *     <li>{@link #processCodeResponse(URI)}</li>
      *     <li>{@link #requestTokens()}</li>
      *     <li>{@link #build()}</li>
      * </ol>
@@ -219,18 +216,18 @@ public class SolidOidcSession implements AuthorizedSession {
     @NoArgsConstructor @Getter
     public static class Builder {
 
-        private URL socialAgentId;
-        private URL applicationId;
+        private URI socialAgentId;
+        private URI applicationId;
         private ClientID clientId;
-        private URL oidcProviderId;
-        private URL oidcAuthorizationEndpoint;
-        private URL oidcTokenEndpoint;
+        private URI oidcProviderId;
+        private URI oidcAuthorizationEndpoint;
+        private URI oidcTokenEndpoint;
         private OkHttpClient httpClient;
         private Scope scope;
         private Prompt prompt;
         private State requestState;
-        private List<URL> redirects;
-        private URL redirect;
+        private List<URI> redirects;
+        private URI redirect;
         private CodeVerifier codeVerifier;
         private AuthorizationRequest authorizationRequest;
         private AuthorizationCode authorizationCode;
@@ -255,10 +252,10 @@ public class SolidOidcSession implements AuthorizedSession {
          * Looks up the provided <code>socialAgentId</code> and gets an OIDC Issuer(s) trusted
          * by the social agent, then ensures the issuer has a compatible configuration and stores
          * pertinent information about it.
-         * @param socialAgentId URL of the SocialAgent Identity
+         * @param socialAgentId URI of the SocialAgent Identity
          * @return SolidOidcSession.Builder
          */
-        public Builder setSocialAgent(URL socialAgentId) throws SaiAuthenticationException, SaiHttpException {
+        public Builder setSocialAgent(URI socialAgentId) throws SaiAuthenticationException {
             Objects.requireNonNull(this.httpClient, "Must provide an http client to build a Solid OIDC session");
             Objects.requireNonNull(socialAgentId, "Must provide a Social Agent identifier to build a Solid OIDC session");
             this.socialAgentId = socialAgentId;
@@ -272,18 +269,18 @@ public class SolidOidcSession implements AuthorizedSession {
             if (!metadata.getClaims().contains("webid") || !metadata.getClaims().contains("client_id")) {
                 throw new SaiAuthenticationException("OpenID Provider " + this.oidcProviderId.toString() + "does not support the necessary claims for solid-oidc");
             }
-            this.oidcAuthorizationEndpoint = uriToUrl(metadata.getAuthorizationEndpointURI());
-            this.oidcTokenEndpoint = uriToUrl(metadata.getTokenEndpointURI());
+            this.oidcAuthorizationEndpoint = metadata.getAuthorizationEndpointURI();
+            this.oidcTokenEndpoint = metadata.getTokenEndpointURI();
             return this;
         }
 
         /**
          * Sets the client Application that will use the Solid-OIDC session. Looks up the provided
          * <code>applicationId</code> to ensure it is available and well-formed.
-         * @param applicationId URL of the Client Application Identity
+         * @param applicationId URI of the Client Application Identity
          * @return SolidOidcSession.Builder
          */
-        public Builder setApplication(URL applicationId) throws SaiAuthenticationException {
+        public Builder setApplication(URI applicationId) throws SaiAuthenticationException {
             return setApplication(applicationId, false);
         }
 
@@ -291,18 +288,18 @@ public class SolidOidcSession implements AuthorizedSession {
          * Sets the client application identifier for the Solid-OIDC session, with the ability
          * to lookup the client document and extract additional criteria (redirect uris and scope) for
          * the session automatically (which can be disabled by setting <code>manual</code> to false).
-         * @param applicationId URL of the Client Application Identity
+         * @param applicationId URI of the Client Application Identity
          * @param manual When true, do not populate and session criteria automatically from client id document
          * @return SolidOidcSession.Builder
          * @throws SaiAuthenticationException
          */
-        public Builder setApplication(URL applicationId, boolean manual) throws SaiAuthenticationException {
+        public Builder setApplication(URI applicationId, boolean manual) throws SaiAuthenticationException {
             Objects.requireNonNull(applicationId, "Must provide an application identifier to build a Solid OIDC session");
             Objects.requireNonNull(httpClient, "Must provide an http client to build a Solid OIDC session");
             if (!manual) {
                 Resource clientDocument = getClientIdDocument(this.httpClient, applicationId);
                 try {
-                    this.setRedirects(RdfUtils.getRequiredUrlObjects(clientDocument, SOLID_OIDC_REDIRECT_URIS));
+                    this.setRedirects(RdfUtils.getRequiredUriObjects(clientDocument, SOLID_OIDC_REDIRECT_URIS));
                     this.setScope(Arrays.asList(getRequiredStringObject(clientDocument, SOLID_OIDC_SCOPE).split(" ")));
                 } catch (SaiRdfNotFoundException | SaiRdfException ex) {
                     throw new SaiAuthenticationException("Unable to set application. Required attributes missing from client id document", ex);
@@ -341,7 +338,7 @@ public class SolidOidcSession implements AuthorizedSession {
          * @param redirect redirection URI to use in the authorization request
          * @return SolidOidcSession.Builder
          */
-        public Builder addRedirect(URL redirect) {
+        public Builder addRedirect(URI redirect) {
             Objects.requireNonNull(redirect, "Must provide redirection endpoint for authorization request");
             if (this.redirects == null) { this.redirects = new ArrayList<>(); }
             this.redirects.add(redirect);
@@ -353,7 +350,7 @@ public class SolidOidcSession implements AuthorizedSession {
          * @param redirects redirection URIs to use in the authorization request
          * @return SolidOidcSession.Builder
          */
-        public Builder setRedirects(List<URL> redirects) {
+        public Builder setRedirects(List<URI> redirects) {
             Objects.requireNonNull(redirects, "Must provide redirection endpoints for authorization request");
             this.redirects = redirects;
             return this;
@@ -379,36 +376,36 @@ public class SolidOidcSession implements AuthorizedSession {
             requestBuilder.scope(scope)
                           .state(this.requestState)
                           .codeChallenge(this.codeVerifier, CodeChallengeMethod.S256)
-                          .redirectionURI(urlToUri(this.redirect))
-                          .endpointURI(urlToUri(this.oidcAuthorizationEndpoint));
+                          .redirectionURI(this.redirect)
+                          .endpointURI(this.oidcAuthorizationEndpoint);
             if (this.prompt != null) { requestBuilder.prompt(this.prompt); }
             this.authorizationRequest = requestBuilder.build();
             return this;
         }
 
         /**
-         * Returns the prepared authorization code request URL
-         * @return URL of the generated authorization code request
+         * Returns the prepared authorization code request URI
+         * @return URI of the generated authorization code request
          */
-        public URL getCodeRequestUrl() throws SaiHttpException {
-            Objects.requireNonNull(this.authorizationRequest, "Cannot get code request URL before the code request is prepared");
-            return uriToUrl(this.authorizationRequest.toURI());
+        public URI getCodeRequestUri() {
+            Objects.requireNonNull(this.authorizationRequest, "Cannot get code request URI before the code request is prepared");
+            return this.authorizationRequest.toURI();
         }
 
         /**
          * Process the response to the authorization code request. All of the information
-         * needed is fully contained in the URL of the response.
-         * @param redirectResponse URL response to the authorization code request
+         * needed is fully contained in the URI of the response.
+         * @param redirectResponse URI response to the authorization code request
          * @return SolidOidcSession.Builder
          * @throws SaiAuthenticationException
          */
-        public Builder processCodeResponse(URL redirectResponse) throws SaiAuthenticationException {
+        public Builder processCodeResponse(URI redirectResponse) throws SaiAuthenticationException {
             Objects.requireNonNull(redirectResponse, "Must provide a response to process authorization code response");
             Objects.requireNonNull(this.requestState, "Must provide an original request state to process a valid code response");
             AuthorizationResponse response;
             try {
                 // Parse the authorization response from the callback URI
-                response = AuthorizationResponse.parse(urlToUri(redirectResponse));
+                response = AuthorizationResponse.parse(redirectResponse);
             } catch (ParseException ex) {
                 throw new SaiAuthenticationException("Failed to parse response to authorization code request", ex);
             }
@@ -441,7 +438,7 @@ public class SolidOidcSession implements AuthorizedSession {
             Objects.requireNonNull(this.codeVerifier, "Must provide a code verifier for the token request");
             this.ecJwk = getEllipticCurveKey(Curve.P_256);
             this.proofFactory = getDPoPProofFactory(this.getEcJwk());
-            Tokens tokens = obtainTokens(this.oidcTokenEndpoint, this.clientId, new AuthorizationCodeGrant(this.authorizationCode, urlToUri(this.redirect), this.codeVerifier), this.proofFactory);
+            Tokens tokens = obtainTokens(this.oidcTokenEndpoint, this.clientId, new AuthorizationCodeGrant(this.authorizationCode, this.redirect, this.codeVerifier), this.proofFactory);
             // The access token is not of type DPoP
             if (tokens.getDPoPAccessToken() == null) { throw new SaiAuthenticationException("Access token is not DPoP"); }
             this.accessToken = translateAccessToken(tokens.getDPoPAccessToken());

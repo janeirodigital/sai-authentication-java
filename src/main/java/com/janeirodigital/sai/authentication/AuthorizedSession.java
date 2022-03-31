@@ -4,7 +4,7 @@ import com.janeirodigital.sai.httputils.HttpMethod;
 
 import java.io.Serializable;
 import java.math.BigInteger;
-import java.net.URL;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -21,22 +21,22 @@ import java.util.Objects;
 public interface AuthorizedSession extends Serializable {
 
     /**
-     * Gets the URL of the SocialAgent identity associated with the {@link AuthorizedSession}
-     * @return URL of SocialAgent identity
+     * Gets the URI of the SocialAgent identity associated with the {@link AuthorizedSession}
+     * @return URI of SocialAgent identity
      */
-    URL getSocialAgentId();
+    URI getSocialAgentId();
 
     /**
-     * Gets the URL of the Application identity associated with the {@link AuthorizedSession}
-     * @return URL of Application identity
+     * Gets the URI of the Application identity associated with the {@link AuthorizedSession}
+     * @return URI of Application identity
      */
-    URL getApplicationId();
+    URI getApplicationId();
 
     /**
-     * Gets the URL of the OIDC Provider that issued the tokens for the {@link AuthorizedSession}
-     * @return URL of Application identity
+     * Gets the URI of the OIDC Provider that issued the tokens for the {@link AuthorizedSession}
+     * @return URI of Application identity
      */
-    URL getOidcProviderId();
+    URI getOidcProviderId();
 
     /**
      * Gets the {@link AccessToken} associated with the {@link AuthorizedSession}
@@ -53,12 +53,12 @@ public interface AuthorizedSession extends Serializable {
     /**
      * Generates a map of HTTP authorization headers that can be added to an HTTP request when
      * accessing protected resources. Some types of sessions (e.g. DPoP) need to know the
-     * HTTP method and target URL of the request to generate the headers.
+     * HTTP method and target URI of the request to generate the headers.
      * @param method HTTP method of the request
-     * @param url Target URL of the request
+     * @param uri Target URI of the request
      * @return Map of Authorization Headers
      */
-    Map<String, String> toHttpHeaders(HttpMethod method, URL url) throws SaiAuthenticationException;
+    Map<String, String> toHttpHeaders(HttpMethod method, URI uri) throws SaiAuthenticationException;
 
     /**
      * Refreshes the token(s) associated with the {@link AuthorizedSession}
@@ -72,7 +72,7 @@ public interface AuthorizedSession extends Serializable {
      * @param algorithm Message digest algorithm to use
      * @return String identifier of an authorized session
      */
-    static String generateId(String algorithm, URL socialAgentId, URL applicationId, URL oidcProviderId) throws SaiAuthenticationException {
+    static String generateId(String algorithm, URI socialAgentId, URI applicationId, URI oidcProviderId) throws SaiAuthenticationException {
         Objects.requireNonNull(socialAgentId, "Must provide a social agent identifier for session id generation");
         Objects.requireNonNull(applicationId, "Must provide an application identifier for session id generation");
         Objects.requireNonNull(oidcProviderId, "Must provide an oidc provider identifier for session id generation");

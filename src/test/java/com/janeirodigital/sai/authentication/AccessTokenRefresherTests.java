@@ -15,16 +15,15 @@ import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.net.URL;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
 import static com.janeirodigital.mockwebserver.DispatcherHelper.mockOnGet;
 import static com.janeirodigital.mockwebserver.DispatcherHelper.mockOnPost;
-import static com.janeirodigital.mockwebserver.MockWebServerHelper.toUrl;
+import static com.janeirodigital.mockwebserver.MockWebServerHelper.toMockUri;
 import static com.janeirodigital.sai.authentication.AuthorizedSessionHelper.getProtectedResource;
 import static com.janeirodigital.sai.httputils.HttpUtils.getResource;
-import static com.janeirodigital.sai.httputils.HttpUtils.stringToUrl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -42,16 +41,16 @@ class AccessTokenRefresherTests {
     private AuthorizedSession authorizedSession;
     @Mock(answer = Answers.CALLS_REAL_METHODS, lenient = true)
     private AuthorizedSession updatedSession;
-    private URL socialAgentId;
-    private URL applicationId;
-    private URL oidcProviderId;
+    private URI socialAgentId;
+    private URI applicationId;
+    private URI oidcProviderId;
     private AccessToken originalToken;
     private AccessToken updatedToken;
     private final String TOKEN_STRING = "MTQ0NjJkZmQ5OTM2NDE1ZTZjNGZmZjI3";
     private final String REFRESH_STRING = "MTQ0NjJkZmQ5OTM2NDE1ZTZjNGZjJi56";
 
     @BeforeEach
-    void beforeEach() throws SaiAuthenticationException, SaiHttpException {
+    void beforeEach() throws SaiAuthenticationException {
         // Initialize request fixtures for the MockWebServer
         dispatcher = new RequestMatchingFixtureDispatcher();
         // In a given test, the first request to this endpoint will return provider-response, the second will return provider-refresh (a different token)
@@ -64,9 +63,9 @@ class AccessTokenRefresherTests {
         sessionAccessor = new BasicAuthorizedSessionAccessor();
         httpClient = new OkHttpClient.Builder().authenticator(new AccessTokenRefresher(sessionAccessor)).build();
 
-        oidcProviderId = toUrl(server, "/op/");
-        socialAgentId = stringToUrl("https://alice.example/id#me");
-        applicationId = stringToUrl("https://projectron.example/id");
+        oidcProviderId = toMockUri(server, "/op/");
+        socialAgentId = URI.create("https://alice.example/id#me");
+        applicationId = URI.create("https://projectron.example/id");
 
         originalToken = new AccessToken(TOKEN_STRING);
         when(authorizedSession.getSocialAgentId()).thenReturn(socialAgentId);
@@ -74,14 +73,14 @@ class AccessTokenRefresherTests {
         when(authorizedSession.getOidcProviderId()).thenReturn(oidcProviderId);
         when(authorizedSession.getAccessToken()).thenReturn(originalToken);
         Map<String, String> authorizationHeader = Map.of(HttpHeader.AUTHORIZATION.getValue(), "Bearer " + originalToken.getValue());
-        when(authorizedSession.toHttpHeaders(any(HttpMethod.class), any(URL.class))).thenReturn(authorizationHeader);
+        when(authorizedSession.toHttpHeaders(any(HttpMethod.class), any(URI.class))).thenReturn(authorizationHeader);
     }
 
     @Test
     @DisplayName("Automatically refresh token on 401")
     void refreshToken() throws SaiAuthenticationException, SaiHttpException {
         sessionAccessor.store(authorizedSession);
-        Response response = getProtectedResource(authorizedSession, httpClient, toUrl(server, "/protected"));
+        Response response = getProtectedResource(authorizedSession, httpClient, toMockUri(server, "/protected"));
         assertEquals(200, response.code());
         verify(authorizedSession).refresh();
     }
@@ -89,7 +88,7 @@ class AccessTokenRefresherTests {
     @Test
     @DisplayName("Bypass on request with no authorization header")
     void bypassNoAuthorizationHeader() throws SaiHttpException {
-        Response response = getResource(httpClient, toUrl(server, "/protected"));
+        Response response = getResource(httpClient, toMockUri(server, "/protected"));
         assertEquals(401, response.code());
     }
 
@@ -98,15 +97,15 @@ class AccessTokenRefresherTests {
     void failToRefreshBadHeader() throws SaiAuthenticationException, SaiHttpException {
         AuthorizedSession badHeaderSession = mock(AuthorizedSession.class, CALLS_REAL_METHODS);
         Map<String, String> authorizationHeader = Map.of(HttpHeader.AUTHORIZATION.getValue(), "INVALIDVALUE");
-        when(badHeaderSession.toHttpHeaders(any(HttpMethod.class), any(URL.class))).thenReturn(authorizationHeader);
-        Response response = getProtectedResource(badHeaderSession, httpClient, toUrl(server, "/protected"));
+        when(badHeaderSession.toHttpHeaders(any(HttpMethod.class), any(URI.class))).thenReturn(authorizationHeader);
+        Response response = getProtectedResource(badHeaderSession, httpClient, toMockUri(server, "/protected"));
         assertEquals(401, response.code());
     }
 
     @Test
     @DisplayName("Fail to refresh when session is missing from session storage")
     void failToRefreshNoSessionInStorage() throws SaiAuthenticationException, SaiHttpException {
-        Response response = getProtectedResource(authorizedSession, httpClient, toUrl(server, "/protected"));
+        Response response = getProtectedResource(authorizedSession, httpClient, toMockUri(server, "/protected"));
         assertEquals(401, response.code());
     }
 
@@ -117,7 +116,7 @@ class AccessTokenRefresherTests {
         OkHttpClient influencedClient = new OkHttpClient.Builder().authenticator(new AccessTokenRefresher(mockAccessor)).build();
         when(mockAccessor.get(any(AccessToken.class))).thenReturn(authorizedSession);
         when(mockAccessor.get(any(AuthorizedSession.class))).thenReturn(null);
-        Response response = getProtectedResource(authorizedSession, influencedClient, toUrl(server, "/protected"));
+        Response response = getProtectedResource(authorizedSession, influencedClient, toMockUri(server, "/protected"));
         assertEquals(401, response.code());
     }
 
@@ -130,14 +129,14 @@ class AccessTokenRefresherTests {
         when(mockAccessor.get(any(AuthorizedSession.class))).thenReturn(updatedSession);
 
         updatedToken = new AccessToken(REFRESH_STRING);
-        when(updatedSession.getSocialAgentId()).thenReturn(stringToUrl("https://some.agent")); // ensures equality check will be false
+        when(updatedSession.getSocialAgentId()).thenReturn(URI.create("https://some.agent")); // ensures equality check will be false
         when(updatedSession.getApplicationId()).thenReturn(applicationId);
         when(updatedSession.getOidcProviderId()).thenReturn(oidcProviderId);
         when(updatedSession.getAccessToken()).thenReturn(updatedToken);
         Map<String, String> updatedHeader = Map.of(HttpHeader.AUTHORIZATION.getValue(), "Bearer " + updatedToken.getValue());
-        when(updatedSession.toHttpHeaders(any(HttpMethod.class), any(URL.class))).thenReturn(updatedHeader);
+        when(updatedSession.toHttpHeaders(any(HttpMethod.class), any(URI.class))).thenReturn(updatedHeader);
         
-        Response response = getProtectedResource(authorizedSession, influencedClient, toUrl(server, "/protected"));
+        Response response = getProtectedResource(authorizedSession, influencedClient, toMockUri(server, "/protected"));
         assertEquals(200, response.code());
     }
 
@@ -149,7 +148,7 @@ class AccessTokenRefresherTests {
         when(mockAccessor.get(any(AccessToken.class))).thenReturn(authorizedSession);
         when(mockAccessor.get(any(AuthorizedSession.class))).thenReturn(authorizedSession);
         when(mockAccessor.refresh(any(AuthorizedSession.class))).thenReturn(null);
-        Response response = getProtectedResource(authorizedSession, influencedClient, toUrl(server, "/protected"));
+        Response response = getProtectedResource(authorizedSession, influencedClient, toMockUri(server, "/protected"));
         assertEquals(401, response.code());
     }
 
@@ -163,9 +162,9 @@ class AccessTokenRefresherTests {
         when(mockAccessor.refresh(any(AuthorizedSession.class))).thenReturn(updatedSession);
 
         updatedToken = new AccessToken(REFRESH_STRING);
-        when(updatedSession.toHttpHeaders(any(HttpMethod.class), any(URL.class))).thenThrow(SaiAuthenticationException.class);
+        when(updatedSession.toHttpHeaders(any(HttpMethod.class), any(URI.class))).thenThrow(SaiAuthenticationException.class);
 
-        Response response = getProtectedResource(authorizedSession, influencedClient, toUrl(server, "/protected"));
+        Response response = getProtectedResource(authorizedSession, influencedClient, toMockUri(server, "/protected"));
         assertEquals(401, response.code());
     }
 
@@ -176,7 +175,7 @@ class AccessTokenRefresherTests {
         OkHttpClient influencedClient = new OkHttpClient.Builder().authenticator(new AccessTokenRefresher(mockAccessor)).build();
         when(mockAccessor.get(any(AccessToken.class))).thenReturn(authorizedSession);
         when(mockAccessor.get(any(AuthorizedSession.class))).thenThrow(SaiAuthenticationException.class);
-        Response response = getProtectedResource(authorizedSession, influencedClient, toUrl(server, "/protected"));
+        Response response = getProtectedResource(authorizedSession, influencedClient, toMockUri(server, "/protected"));
         assertEquals(401, response.code());
     }
 
@@ -188,7 +187,7 @@ class AccessTokenRefresherTests {
         when(mockAccessor.get(any(AccessToken.class))).thenReturn(authorizedSession);
         when(mockAccessor.get(any(AuthorizedSession.class))).thenReturn(authorizedSession);
         when(mockAccessor.refresh(any(AuthorizedSession.class))).thenThrow(SaiAuthenticationException.class);
-        Response response = getProtectedResource(authorizedSession, influencedClient, toUrl(server, "/protected"));
+        Response response = getProtectedResource(authorizedSession, influencedClient, toMockUri(server, "/protected"));
         assertEquals(401, response.code());
     }
 }
