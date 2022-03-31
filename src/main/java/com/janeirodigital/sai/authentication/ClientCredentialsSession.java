@@ -1,7 +1,6 @@
 package com.janeirodigital.sai.authentication;
 
 import com.janeirodigital.sai.httputils.HttpMethod;
-import com.janeirodigital.sai.httputils.SaiHttpException;
 import com.nimbusds.oauth2.sdk.*;
 import com.nimbusds.oauth2.sdk.auth.ClientAuthentication;
 import com.nimbusds.oauth2.sdk.auth.ClientSecretBasic;
@@ -12,7 +11,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.io.IOException;
-import java.net.URL;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -20,7 +19,6 @@ import java.util.Objects;
 import static com.janeirodigital.sai.authentication.AuthorizedSessionHelper.getOIDCProviderConfiguration;
 import static com.janeirodigital.sai.authentication.AuthorizedSessionHelper.translateAccessToken;
 import static com.janeirodigital.sai.httputils.HttpHeader.AUTHORIZATION;
-import static com.janeirodigital.sai.httputils.HttpUtils.*;
 
 /**
  * Implementation of {@link AuthorizedSession} for a Client Credentials authorization flow
@@ -28,38 +26,37 @@ import static com.janeirodigital.sai.httputils.HttpUtils.*;
 @Getter
 public class ClientCredentialsSession implements AuthorizedSession {
 
-    private final URL socialAgentId;
-    private final URL applicationId;
+    private final URI socialAgentId;
+    private final URI applicationId;
     private final String clientIdentifier;
     private final String clientSecret;
-    private final URL oidcProviderId;
-    private final URL oidcTokenEndpoint;
+    private final URI oidcProviderId;
+    private final URI oidcTokenEndpoint;
     private final Scope scope;
     private AccessToken accessToken;
 
-    private ClientCredentialsSession(URL socialAgentId, URL applicationId, String clientIdentifier, String clientSecret, URL oidcProviderId,
-                                     URL oidcTokenEndpoint, Scope scope, AccessToken accessToken) throws SaiHttpException {
-        Objects.requireNonNull(clientIdentifier, "Must provide an OIDC client identifier to construct a client credentials session");
-        Objects.requireNonNull(clientSecret, "Must provide an OIDC client secret to construct a client credentials session");
-        Objects.requireNonNull(oidcProviderId, "Must provide an OIDC provider identifier to construct a client credentials session");
-        Objects.requireNonNull(oidcTokenEndpoint, "Must provide OIDC token endpoint to construct a client credentials session");
-        Objects.requireNonNull(scope, "Must provide scope to construct a client credentials session");
-        Objects.requireNonNull(accessToken, "Must provide an access token to construct a client credentials session");
-        this.clientIdentifier = clientIdentifier;
-        this.clientSecret = clientSecret;
-        this.oidcProviderId = oidcProviderId;
-        this.oidcTokenEndpoint = oidcTokenEndpoint;
-        this.scope = scope;
-        this.accessToken = accessToken;
-        if (socialAgentId == null) {
-            this.socialAgentId = stringToUrl("https://social.local/" + clientIdentifier);
+    private ClientCredentialsSession(Builder builder) {
+        Objects.requireNonNull(builder.clientIdentifier, "Must provide an OIDC client identifier to construct a client credentials session");
+        Objects.requireNonNull(builder.clientSecret, "Must provide an OIDC client secret to construct a client credentials session");
+        Objects.requireNonNull(builder.oidcProviderId, "Must provide an OIDC provider identifier to construct a client credentials session");
+        Objects.requireNonNull(builder.oidcTokenEndpoint, "Must provide OIDC token endpoint to construct a client credentials session");
+        Objects.requireNonNull(builder.scope, "Must provide scope to construct a client credentials session");
+        Objects.requireNonNull(builder.accessToken, "Must provide an access token to construct a client credentials session");
+        this.clientIdentifier = builder.clientIdentifier;
+        this.clientSecret = builder.clientSecret;
+        this.oidcProviderId = builder.oidcProviderId;
+        this.oidcTokenEndpoint = builder.oidcTokenEndpoint;
+        this.scope = builder.scope;
+        this.accessToken = builder.accessToken;
+        if (builder.socialAgentId == null) {
+            this.socialAgentId = URI.create("https://social.local/" + this.clientIdentifier);
         } else {
-            this.socialAgentId = socialAgentId;
+            this.socialAgentId = builder.socialAgentId;
         }
-        if (applicationId == null) {
-            this.applicationId = stringToUrl("https://clients.local/" + clientIdentifier);
+        if (builder.applicationId == null) {
+            this.applicationId = URI.create("https://clients.local/" + this.clientIdentifier);
         } else {
-            this.applicationId = applicationId;
+            this.applicationId = builder.applicationId;
         }
     }
 
@@ -67,11 +64,11 @@ public class ClientCredentialsSession implements AuthorizedSession {
      * Generates a map of HTTP Authorization headers that can be use to make authorized requests
      * using the session. Client credentials uses a Bearer token in a single authorization header.
      * @param method not needed - can be null for client credentials
-     * @param url not needed - can be null for client credentials
+     * @param uri not needed - can be null for client credentials
      * @return Map of HTTP Authorization headers
      */
     @Override
-    public Map<String, String> toHttpHeaders(HttpMethod method, URL url) {
+    public Map<String, String> toHttpHeaders(HttpMethod method, URI uri) {
         Objects.requireNonNull(this.accessToken, "Cannot generate authorization headers for an uninitialized access token");
         return Map.of(AUTHORIZATION.getValue(), "Bearer " + this.accessToken.getValue());
     }
@@ -105,7 +102,7 @@ public class ClientCredentialsSession implements AuthorizedSession {
      * @return AccessToken
      * @throws SaiAuthenticationException
      */
-    protected static AccessToken obtainToken(String clientIdentifier, String clientSecret, URL oidcTokenEndpoint, Scope scope) throws SaiAuthenticationException {
+    protected static AccessToken obtainToken(String clientIdentifier, String clientSecret, URI oidcTokenEndpoint, Scope scope) throws SaiAuthenticationException {
         Objects.requireNonNull(clientIdentifier, "Must provide a client identifier to build client credentials session");
         Objects.requireNonNull(clientSecret, "Must provide a client secret to build client credentials session");
         Objects.requireNonNull(scope, "Must provide scope to build client credentials session");
@@ -115,7 +112,7 @@ public class ClientCredentialsSession implements AuthorizedSession {
         ClientID clientID = new ClientID(clientIdentifier);
         Secret secret = new Secret(clientSecret);
         ClientAuthentication clientAuth = new ClientSecretBasic(clientID, secret);
-        TokenRequest request = new TokenRequest(urlToUri(oidcTokenEndpoint), clientAuth, clientGrant, scope);
+        TokenRequest request = new TokenRequest(oidcTokenEndpoint, clientAuth, clientGrant, scope);
 
         TokenResponse response;
         try {
@@ -134,7 +131,7 @@ public class ClientCredentialsSession implements AuthorizedSession {
      * Builder for {@link ClientCredentialsSession} instances. Requires methods to be called
      * in a particular order to establish the session successfully.<br>
      * <ol>
-     *     <li>{@link #setOidcProvider(URL)}</li>
+     *     <li>{@link #setOidcProvider(URI)}</li>
      *     <li>{@link #setClientIdentifier(String)}</li>
      *     <li>{@link #setClientSecret(String)}</li>
      *     <li>{@link #setScope(List)}</li>
@@ -145,12 +142,12 @@ public class ClientCredentialsSession implements AuthorizedSession {
     @NoArgsConstructor @Getter
     public static class Builder {
 
-        private URL socialAgentId;
-        private URL applicationId;
+        private URI socialAgentId;
+        private URI applicationId;
         private String clientIdentifier;
         private String clientSecret;
-        private URL oidcProviderId;
-        private URL oidcTokenEndpoint;
+        private URI oidcProviderId;
+        private URI oidcTokenEndpoint;
         Scope scope;
         private AccessToken accessToken;
 
@@ -158,10 +155,10 @@ public class ClientCredentialsSession implements AuthorizedSession {
          * Optional - Sets the social agent associated with the registered client. This is synonymous
          * with the value that the oidc provider will insert into the webid claim of the client's
          * access token.
-         * @param socialAgentId URL of the social agent responsible for the application
+         * @param socialAgentId URI of the social agent responsible for the application
          * @return ClientCredentialsSession.Builder
          */
-        public Builder setSocialAgent(URL socialAgentId) {
+        public Builder setSocialAgent(URI socialAgentId) {
             Objects.requireNonNull(socialAgentId, "Must provide a social agent id to associate with client");
             this.socialAgentId = socialAgentId;
             return this;
@@ -169,10 +166,10 @@ public class ClientCredentialsSession implements AuthorizedSession {
 
         /**
          * Optional - Sets the application identifier associated with the registered client. 
-         * @param applicationId URL of the client application identity
+         * @param applicationId URI of the client application identity
          * @return ClientCredentialsSession.Builder
          */
-        public Builder setApplication(URL applicationId) {
+        public Builder setApplication(URI applicationId) {
             Objects.requireNonNull(applicationId, "Must provide a application id to associate with client");
             this.applicationId = applicationId;
             return this;
@@ -181,14 +178,14 @@ public class ClientCredentialsSession implements AuthorizedSession {
         /**
          * Sets the openid connect provider that the client is registered with. Will be
          * checked for validity via .well-known/openid-configuration discovery
-         * @param oidcProviderId URL of the oidc provider
+         * @param oidcProviderId URI of the oidc provider
          * @return ClientCredentialsSession.Builder
          */
-        public Builder setOidcProvider(URL oidcProviderId) throws SaiAuthenticationException, SaiHttpException {
-            Objects.requireNonNull(oidcProviderId, "Must provide an oidc provider URL to build client credentials session");
+        public Builder setOidcProvider(URI oidcProviderId) throws SaiAuthenticationException {
+            Objects.requireNonNull(oidcProviderId, "Must provide an oidc provider URI to build client credentials session");
             this.oidcProviderId = oidcProviderId;
             OIDCProviderMetadata metadata = getOIDCProviderConfiguration(this.oidcProviderId);
-            this.oidcTokenEndpoint = uriToUrl(metadata.getTokenEndpointURI());
+            this.oidcTokenEndpoint = metadata.getTokenEndpointURI();
             return this;
         }
 
@@ -246,16 +243,14 @@ public class ClientCredentialsSession implements AuthorizedSession {
          * successfully.
          * @return {@link ClientCredentialsSession}
          */
-        public ClientCredentialsSession build() throws SaiHttpException {
+        public ClientCredentialsSession build() {
             Objects.requireNonNull(this.clientIdentifier, "Must provide an OIDC client identifier to build a client credentials session");
             Objects.requireNonNull(this.clientSecret, "Must provide an OIDC client secret to build a client credentials session");
             Objects.requireNonNull(this.oidcProviderId, "Must provide an OIDC provider id to build a client credentials session");
             Objects.requireNonNull(this.oidcTokenEndpoint, "Cannot build a client credentials session without OIDC token endpoint");
             Objects.requireNonNull(this.scope, "Must provide scope to build client credentials session");
             Objects.requireNonNull(this.accessToken, "Cannot build a client credentials session without an access token");
-            return new ClientCredentialsSession(this.socialAgentId, this.applicationId, this.clientIdentifier, this.clientSecret, this.oidcProviderId, this.oidcTokenEndpoint, this.scope, this.accessToken);
+            return new ClientCredentialsSession(this);
         }
-
     }
-
 }

@@ -1,6 +1,6 @@
 package com.janeirodigital.sai.authentication;
 
-import java.net.URL;
+import java.net.URI;
 
 /**
  * Provides an interface for sai-java to lookup an {@link AuthorizedSession} based
@@ -26,12 +26,12 @@ public interface AuthorizedSessionAccessor {
     /**
      * Get an {@link AuthorizedSession} matching the provided <code>socialAgentId</code>,
      * <code>applicationId</code>, <code>oidcProviderId</code>
-     * @param socialAgentId URL identifier of the session's social agent
-     * @param applicationId URL identifier of the session's application
-     * @param oidcProviderId URL identifier of the session's openid connect provider
+     * @param socialAgentId URI identifier of the session's social agent
+     * @param applicationId URI identifier of the session's application
+     * @param oidcProviderId URI identifier of the session's openid connect provider
      * @return {@link AuthorizedSession} or null if it can't be found
      */
-    AuthorizedSession get(URL socialAgentId, URL applicationId, URL oidcProviderId) throws SaiAuthenticationException;
+    AuthorizedSession get(URI socialAgentId, URI applicationId, URI oidcProviderId) throws SaiAuthenticationException;
 
     /**
      * Refreshes and updates the stored version of the {@link AuthorizedSession}

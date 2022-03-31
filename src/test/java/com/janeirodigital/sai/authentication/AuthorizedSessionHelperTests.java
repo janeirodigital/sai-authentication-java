@@ -18,13 +18,12 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
 import static com.janeirodigital.mockwebserver.DispatcherHelper.*;
-import static com.janeirodigital.mockwebserver.MockWebServerHelper.toUrl;
+import static com.janeirodigital.mockwebserver.MockWebServerHelper.toMockUri;
 import static com.janeirodigital.sai.authentication.AuthorizedSessionHelper.*;
 import static com.janeirodigital.sai.authentication.SolidOidcVocabulary.SOLID_OIDC_CLIENT_NAME;
 import static com.janeirodigital.sai.authentication.SolidOidcVocabulary.SOLID_OIDC_DEFAULT_MAX_AGE;
@@ -32,7 +31,7 @@ import static com.janeirodigital.sai.httputils.ContentType.TEXT_TURTLE;
 import static com.janeirodigital.sai.httputils.HttpHeader.IF_NONE_MATCH;
 import static com.janeirodigital.sai.httputils.HttpMethod.GET;
 import static com.janeirodigital.sai.httputils.HttpUtils.setHttpHeader;
-import static com.janeirodigital.sai.httputils.HttpUtils.urlToUri;
+import static com.janeirodigital.sai.httputils.HttpUtils.uriToUrl;
 import static com.janeirodigital.sai.rdfutils.RdfUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -44,9 +43,9 @@ class AuthorizedSessionHelperTests {
     private static MockWebServer server;
     private static RequestMatchingFixtureDispatcher dispatcher;
     private static OkHttpClient httpClient;
-    private static URL socialAgentId;
-    private static URL clientId;
-    private static URL oidcProviderId;
+    private static URI socialAgentId;
+    private static URI clientId;
+    private static URI oidcProviderId;
     private static final String TOKEN_VALUE = "MTQ0NjJkZmQ5OTM2NDE1ZTZjNGZmZjI3";
 
     @BeforeAll
@@ -78,44 +77,44 @@ class AuthorizedSessionHelperTests {
 
         httpClient = new OkHttpClient.Builder().build();
 
-        clientId = toUrl(server, "/projectron");
-        socialAgentId = toUrl(server, "/alice/id#me");
-        oidcProviderId = toUrl(server, "/op/");
+        clientId = toMockUri(server, "/projectron");
+        socialAgentId = toMockUri(server, "/alice/id#me");
+        oidcProviderId = toMockUri(server, "/op/");
 
     }
 
     @Test
     @DisplayName("Get oidc provider configuration")
-    void getConfigurationForOIDCProvider() throws MalformedURLException, SaiAuthenticationException {
-        OIDCProviderMetadata oidcProvider = getOIDCProviderConfiguration(toUrl(server, "/op/"));
-        assertEquals(toUrl(server,"/op/token"), oidcProvider.getTokenEndpointURI().toURL());
-        assertEquals(toUrl(server,"/op/auth"), oidcProvider.getAuthorizationEndpointURI().toURL());
-        assertEquals(toUrl(server,"/op/reg"), oidcProvider.getRegistrationEndpointURI().toURL());
+    void getConfigurationForOIDCProvider() throws SaiAuthenticationException {
+        OIDCProviderMetadata oidcProvider = getOIDCProviderConfiguration(toMockUri(server, "/op/"));
+        assertEquals(toMockUri(server,"/op/token"), oidcProvider.getTokenEndpointURI());
+        assertEquals(toMockUri(server,"/op/auth"), oidcProvider.getAuthorizationEndpointURI());
+        assertEquals(toMockUri(server,"/op/reg"), oidcProvider.getRegistrationEndpointURI());
     }
 
     @Test
     @DisplayName("Fail to get oidc provider configuration - issuer mismatch")
     void failToGetConfigurationIssuerMismatch() {
-        assertThrows(SaiAuthenticationException.class, () -> { getOIDCProviderConfiguration(toUrl(server, "/mismatch/")); });
+        assertThrows(SaiAuthenticationException.class, () -> { getOIDCProviderConfiguration(toMockUri(server, "/mismatch/")); });
     }
 
     @Test
     @DisplayName("Fail to get oidc provider configuration - missing configuration")
     void failToGetConfigurationNoConfiguration() {
-        assertThrows(SaiAuthenticationException.class, () -> { getOIDCProviderConfiguration(toUrl(server, "/missing/")); });
+        assertThrows(SaiAuthenticationException.class, () -> { getOIDCProviderConfiguration(toMockUri(server, "/missing/")); });
     }
 
     @Test
     @DisplayName("Get oidc issuer for social agent")
     void getIssuer() throws SaiAuthenticationException {
-        URL issuer = getOidcIssuerForSocialAgent(httpClient, socialAgentId);
+        URI issuer = getOidcIssuerForSocialAgent(httpClient, socialAgentId);
         assertEquals(issuer, oidcProviderId);
     }
 
     @Test
     @DisplayName("Fail to get oidc issuer for social agent - missing id document")
     void failToGetIssuerMissingId() {
-        URL missingId = toUrl(server, "/missing");
+        URI missingId = toMockUri(server, "/missing");
         assertThrows(SaiAuthenticationException.class, () -> getOidcIssuerForSocialAgent(httpClient, missingId));
     }
 
@@ -131,43 +130,43 @@ class AuthorizedSessionHelperTests {
     @Test
     @DisplayName("Fail to get client id document for application - missing document")
     void failToGetClientIdMissingDocument() {
-        URL missingId = toUrl(server, "/missing");
+        URI missingId = toMockUri(server, "/missing");
         assertThrows(SaiAuthenticationException.class, () -> getClientIdDocument(httpClient, missingId));
     }
 
     @Test
     @DisplayName("Get access token from Request")
-    void getRequestAccessToken() throws SaiAuthenticationException {
+    void getRequestAccessToken() throws SaiAuthenticationException, SaiHttpException {
         AuthorizedSession mockSession = getMockSession(TOKEN_VALUE);
-        URL resourceUrl = toUrl(server, "/protected");
-        Headers headers = setAuthorizationHeaders(mockSession, GET, resourceUrl, null);
+        URI resourceUri = toMockUri(server, "/protected");
+        Headers headers = setAuthorizationHeaders(mockSession, GET, resourceUri, null);
         Request.Builder requestBuilder = new Request.Builder();
-        Request request = requestBuilder.url(resourceUrl).method(GET.getValue(), null).headers(headers).build();
+        Request request = requestBuilder.url(uriToUrl(resourceUri)).method(GET.getValue(), null).headers(headers).build();
         AccessToken token = getAccessTokenFromRequest(request);
         assertEquals(TOKEN_VALUE, token.getValue());
     }
 
     @Test
     @DisplayName("Fail to get token from Request - no authorization headers")
-    void failToGetRequestTokenNoHeaders() {
-        URL resourceUrl = toUrl(server, "/protected");
+    void failToGetRequestTokenNoHeaders() throws SaiHttpException {
+        URI resourceUri = toMockUri(server, "/protected");
         Request.Builder requestBuilder = new Request.Builder();
-        Request request = requestBuilder.url(resourceUrl).method(GET.getValue(), null).build();
+        Request request = requestBuilder.url(uriToUrl(resourceUri)).method(GET.getValue(), null).build();
         AccessToken token = getAccessTokenFromRequest(request);
         assertNull(token);
     }
 
     @Test
     @DisplayName("Fail to get token from Request - invalid authorization header")
-    void failToGetRequestTokenInvalidHeader() throws SaiAuthenticationException {
+    void failToGetRequestTokenInvalidHeader() throws SaiAuthenticationException, SaiHttpException {
         AuthorizedSession mockSession = mock(AuthorizedSession.class);
         Map<String, String> authorizationHeader = Map.of(HttpHeader.AUTHORIZATION.getValue(), "INVALIDVALUE");
-        when(mockSession.toHttpHeaders(any(HttpMethod.class), any(URL.class))).thenReturn(authorizationHeader);
+        when(mockSession.toHttpHeaders(any(HttpMethod.class), any(URI.class))).thenReturn(authorizationHeader);
 
-        URL resourceUrl = toUrl(server, "/protected");
-        Headers headers = setAuthorizationHeaders(mockSession, GET, resourceUrl, null);
+        URI resourceUri = toMockUri(server, "/protected");
+        Headers headers = setAuthorizationHeaders(mockSession, GET, resourceUri, null);
         Request.Builder requestBuilder = new Request.Builder();
-        Request request = requestBuilder.url(resourceUrl).method(GET.getValue(), null).headers(headers).build();
+        Request request = requestBuilder.url(uriToUrl(resourceUri)).method(GET.getValue(), null).headers(headers).build();
         AccessToken token = getAccessTokenFromRequest(request);
         assertNull(token);
     }
@@ -176,8 +175,8 @@ class AuthorizedSessionHelperTests {
     @DisplayName("Get a protected resource")
     void testGetProtectedResource() throws SaiAuthenticationException, SaiHttpException {
         AuthorizedSession mockSession = getMockSession(TOKEN_VALUE);
-        URL resourceUrl = toUrl(server, "/protected");
-        try (Response response = getProtectedResource(mockSession, httpClient, resourceUrl)) {
+        URI resourceUri = toMockUri(server, "/protected");
+        try (Response response = getProtectedResource(mockSession, httpClient, resourceUri)) {
             assertEquals(200, response.code());
         }
     }
@@ -186,9 +185,9 @@ class AuthorizedSessionHelperTests {
     @DisplayName("Get a protected resource - with headers")
     void testGetProtectedResourceHeaders() throws SaiAuthenticationException, SaiHttpException {
         AuthorizedSession mockSession = getMockSession(TOKEN_VALUE);
-        URL resourceUrl = toUrl(server, "/protected");
+        URI resourceUri = toMockUri(server, "/protected");
         Headers headers = setHttpHeader(HttpHeader.ACCEPT, "text/*");
-        try (Response response = getProtectedResource(mockSession, httpClient, resourceUrl, headers)) {
+        try (Response response = getProtectedResource(mockSession, httpClient, resourceUri, headers)) {
             assertEquals(200, response.code());
         }
     }
@@ -197,8 +196,8 @@ class AuthorizedSessionHelperTests {
     @DisplayName("Get a protected rdf resource")
     void testGetProtectedRdfResource() throws SaiAuthenticationException, SaiHttpException {
         AuthorizedSession mockSession = getMockSession(TOKEN_VALUE);
-        URL resourceUrl = toUrl(server, "/ttl/protected");
-        try (Response response = getProtectedRdfResource(mockSession, httpClient, resourceUrl)) {
+        URI resourceUri = toMockUri(server, "/ttl/protected");
+        try (Response response = getProtectedRdfResource(mockSession, httpClient, resourceUri)) {
             assertEquals(200, response.code());
         }
     }
@@ -207,9 +206,9 @@ class AuthorizedSessionHelperTests {
     @DisplayName("Get a protected rdf resource - with headers")
     void testGetProtectedRdfResourceHeaders() throws SaiAuthenticationException, SaiHttpException {
         AuthorizedSession mockSession = getMockSession(TOKEN_VALUE);
-        URL resourceUrl = toUrl(server, "/ttl/protected");
+        URI resourceUri = toMockUri(server, "/ttl/protected");
         Headers headers = setHttpHeader(HttpHeader.ACCEPT, TEXT_TURTLE.getValue());
-        try (Response response = getProtectedRdfResource(mockSession, httpClient, resourceUrl, headers)) {
+        try (Response response = getProtectedRdfResource(mockSession, httpClient, resourceUri, headers)) {
             assertEquals(200, response.code());
         }
     }
@@ -220,10 +219,10 @@ class AuthorizedSessionHelperTests {
     @DisplayName("Put a protected turtle resource")
     void testPutProtectedTurtleResource() throws SaiAuthenticationException, SaiRdfException, SaiHttpException {
         AuthorizedSession mockSession = getMockSession(TOKEN_VALUE);
-        URL resourceUrl = toUrl(server, "/ttl/protected");
-        Model model = getModelFromString(urlToUri(resourceUrl), getRdfBody(), TEXT_TURTLE.getValue());
-        Resource resource = model.getResource(resourceUrl.toString());
-        Response response = putProtectedRdfResource(mockSession, httpClient, resourceUrl, resource, TEXT_TURTLE);
+        URI resourceUri = toMockUri(server, "/ttl/protected");
+        Model model = getModelFromString(resourceUri, getRdfBody(), TEXT_TURTLE.getValue());
+        Resource resource = model.getResource(resourceUri.toString());
+        Response response = putProtectedRdfResource(mockSession, httpClient, resourceUri, resource, TEXT_TURTLE);
         assertEquals(204, response.code());
     }
 
@@ -231,11 +230,11 @@ class AuthorizedSessionHelperTests {
     @DisplayName("Put a protected turtle resource - with headers")
     void testPutProtectedTurtleResourceHeaders() throws SaiRdfException, SaiAuthenticationException, SaiHttpException {
         AuthorizedSession mockSession = getMockSession(TOKEN_VALUE);
-        URL resourceUrl = toUrl(server, "/ttl/protected");
-        Model model = getModelFromString(urlToUri(resourceUrl), getRdfBody(), TEXT_TURTLE.getValue());
-        Resource resource = model.getResource(resourceUrl.toString());
+        URI resourceUri = toMockUri(server, "/ttl/protected");
+        Model model = getModelFromString(resourceUri, getRdfBody(), TEXT_TURTLE.getValue());
+        Resource resource = model.getResource(resourceUri.toString());
         Headers headers = setHttpHeader(IF_NONE_MATCH, "*");
-        Response response = putProtectedRdfResource(mockSession, httpClient, resourceUrl, resource, TEXT_TURTLE, headers);
+        Response response = putProtectedRdfResource(mockSession, httpClient, resourceUri, resource, TEXT_TURTLE, headers);
         assertEquals(204, response.code());
     }
 
@@ -243,10 +242,10 @@ class AuthorizedSessionHelperTests {
     @DisplayName("Put a protected json-ld resource")
     void testPutProtectedJsonLdResourceHeaders() throws SaiRdfException, SaiAuthenticationException, SaiHttpException {
         AuthorizedSession mockSession = getMockSession(TOKEN_VALUE);
-        URL resourceUrl = toUrl(server, "/jsonld/protected");
-        Model model = getModelFromString(urlToUri(resourceUrl), getJsonLdBody(resourceUrl.toString()), LD_JSON);
-        Resource resource = model.getResource(resourceUrl.toString());
-        Response response = putProtectedRdfResource(mockSession, httpClient, resourceUrl, resource, ContentType.LD_JSON, "");
+        URI resourceUri = toMockUri(server, "/jsonld/protected");
+        Model model = getModelFromString(resourceUri, getJsonLdBody(), LD_JSON);
+        Resource resource = model.getResource(resourceUri.toString());
+        Response response = putProtectedRdfResource(mockSession, httpClient, resourceUri, resource, ContentType.LD_JSON, "");
         assertEquals(204, response.code());
     }
 
@@ -254,15 +253,15 @@ class AuthorizedSessionHelperTests {
     @DisplayName("Delete a protected resource")
     void testDeleteProtectedResourceHeaders() throws SaiAuthenticationException, SaiHttpException {
         AuthorizedSession mockSession = getMockSession(TOKEN_VALUE);
-        URL resourceUrl = toUrl(server, "/protected");
-        Response response = deleteProtectedResource(mockSession, httpClient, resourceUrl);
+        URI resourceUri = toMockUri(server, "/protected");
+        Response response = deleteProtectedResource(mockSession, httpClient, resourceUri);
         assertEquals(204, response.code());
     }
 
     private AuthorizedSession getMockSession(String tokenValue) throws SaiAuthenticationException {
         AuthorizedSession mockSession = mock(AuthorizedSession.class);
         Map<String, String> authorizationHeader = Map.of(HttpHeader.AUTHORIZATION.getValue(), "Bearer " + tokenValue);
-        when(mockSession.toHttpHeaders(any(HttpMethod.class), any(URL.class))).thenReturn(authorizationHeader);
+        when(mockSession.toHttpHeaders(any(HttpMethod.class), any(URI.class))).thenReturn(authorizationHeader);
         return mockSession;
     }
 
@@ -282,7 +281,7 @@ class AuthorizedSessionHelperTests {
                 "    ex:hasMilestone </data/projects/project-1/milestone-3/#milestone> .";
     }
 
-    private String getJsonLdBody(String resource) {
+    private String getJsonLdBody() {
         return "{\n" +
                 "  \"@context\": {\n" +
                 "    \"ical\": \"http://www.w3.org/2002/12/cal/ical#\",\n" +

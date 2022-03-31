@@ -88,7 +88,7 @@ public class AccessTokenRefresher implements Authenticator {
         Request.Builder requestBuilder = response.request().newBuilder();
         Map<String, String> authorizationHeaders;
         try {
-            authorizationHeaders = session.toHttpHeaders(HttpMethod.get(response.request().method()), response.request().url().url());
+            authorizationHeaders = session.toHttpHeaders(HttpMethod.get(response.request().method()), response.request().url().uri());
         } catch (SaiAuthenticationException ex) {
             log.error("Unable to generate authorization headers: " + ex.getMessage());
             return null;

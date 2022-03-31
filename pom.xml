@@ -9,20 +9,20 @@
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
-        <maven-compiler-plugin.version>3.9.0</maven-compiler-plugin.version>
+        <maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>
         <maven-jar-plugin.version>3.2.2</maven-jar-plugin.version>
         <lombok.version>1.18.22</lombok.version>
-        <slf4j.version>1.7.33</slf4j.version>
+        <slf4j.version>1.7.36</slf4j.version>
         <junit.version>5.8.2</junit.version>
         <jacoco-maven-plugin.version>0.8.7</jacoco-maven-plugin.version>
         <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
-        <maven-javadoc.version>3.3.1</maven-javadoc.version>
+        <maven-javadoc.version>3.3.2</maven-javadoc.version>
         <snakeyaml.version>1.30</snakeyaml.version>
-        <mockito.version>4.3.1</mockito.version>
+        <mockito.version>4.4.0</mockito.version>
         <maven-release-plugin.version>3.0.0-M5</maven-release-plugin.version>
-        <sai-http-utils.version>0.9.2</sai-http-utils.version>
-        <sai-rdf-utils.version>0.9.1</sai-rdf-utils.version>
-        <mockwebserverplus-ext.version>0.9.3</mockwebserverplus-ext.version>
+        <sai-http-utils.version>0.9.3</sai-http-utils.version>
+        <sai-rdf-utils.version>0.9.2</sai-rdf-utils.version>
+        <mockwebserverplus-ext.version>0.9.4</mockwebserverplus-ext.version>
         <nimbus.version>9.24</nimbus.version>
         <project.scm.id>github</project.scm.id>
         <lombok-maven-plugin.version>1.18.20.0</lombok-maven-plugin.version>
