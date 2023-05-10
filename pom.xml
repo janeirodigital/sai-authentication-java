@@ -4,7 +4,7 @@
 
     <groupId>com.janeirodigital</groupId>
     <artifactId>sai-authentication-java</artifactId>
-    <version>0.9.4</version>
+    <version>0.9.5-SNAPSHOT</version>
 
     <properties>
         <java.version>17</java.version>
@@ -39,7 +39,7 @@
         <connection>scm:git:${project.scm.url}</connection>
         <developerConnection>scm:git:${project.scm.url}</developerConnection>
         <url>https://github.com/janeirodigital/sai-authentication-java.git</url>
-        <tag>v0.9.4</tag>
+        <tag>HEAD</tag>
     </scm>
 
 
