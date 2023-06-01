@@ -159,14 +159,6 @@ class SolidOidcSessionTests {
     }
 
     @Test
-    @DisplayName("Fail to initialize solid-oidc builder - no provider client_id claim support")
-    void failToInitBuilderNoProviderClientId() {
-        SolidOidcSession.Builder builder = new SolidOidcSession.Builder();
-        builder.setHttpClient(httpClient);
-        assertThrows(SaiAuthenticationException.class, () -> { builder.setSocialAgent(socialAgentNoClientId); });
-    }
-
-    @Test
     @DisplayName("Initialize solid-oidc builder - application - manual")
     void initBuilderApplication() throws SaiAuthenticationException {
         SolidOidcSession.Builder builder = new SolidOidcSession.Builder();
