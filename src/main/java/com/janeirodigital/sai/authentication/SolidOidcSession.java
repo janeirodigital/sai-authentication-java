@@ -265,7 +265,7 @@ public class SolidOidcSession implements AuthorizedSession {
                 throw new SaiAuthenticationException("OpenID Provider " + this.oidcProviderId.toString() + "does not support DPoP");
             }
             // Ensure that the OIDC Provider can issue webid and client_id claims
-            if (!metadata.getClaims().contains("webid") || !metadata.getClaims().contains("client_id")) {
+            if (!metadata.getClaims().contains("webid")) {
                 throw new SaiAuthenticationException("OpenID Provider " + this.oidcProviderId.toString() + "does not support the necessary claims for solid-oidc");
             }
             this.oidcAuthorizationEndpoint = metadata.getAuthorizationEndpointURI();
