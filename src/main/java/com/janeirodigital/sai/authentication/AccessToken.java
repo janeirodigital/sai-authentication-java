@@ -17,7 +17,7 @@ public class AccessToken implements Serializable {
      * Construct a new AccessToken
      * @param value Value of the token itself
      */
-    protected AccessToken(String value) {
+    public AccessToken(String value) {
         Objects.requireNonNull(value, "Must provide an access token value");
         this.value = value;
     }
