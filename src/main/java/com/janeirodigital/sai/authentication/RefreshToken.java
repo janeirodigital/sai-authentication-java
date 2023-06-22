@@ -17,7 +17,7 @@ public class RefreshToken implements Serializable {
      * Construct a new RefreshToken
      * @param value Value of the token itself
      */
-    protected RefreshToken(String value) {
+    public RefreshToken(String value) {
         Objects.requireNonNull(value, "Must provide a refresh token value");
         this.value = value;
     }

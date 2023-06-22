@@ -248,28 +248,74 @@ public class SolidOidcSession implements AuthorizedSession {
 
         /**
          * Sets the Social Agent that the Solid-OIDC session will be established on behalf of.
-         * Looks up the provided <code>socialAgentId</code> and gets an OIDC Issuer(s) trusted
-         * by the social agent, then ensures the issuer has a compatible configuration and stores
-         * pertinent information about it.
+         * Defaults to lookup of profile document and population of additional oidc metadata.
          * @param socialAgentId URI of the SocialAgent Identity
          * @return SolidOidcSession.Builder
          */
         public Builder setSocialAgent(URI socialAgentId) throws SaiAuthenticationException {
-            Objects.requireNonNull(this.httpClient, "Must provide an http client to build a Solid OIDC session");
+            return setSocialAgent(socialAgentId, false);
+        }
+
+        /**
+         * Sets the Social Agent that the Solid-OIDC session will be established on behalf of.
+         * Looks up the provided <code>socialAgentId</code> and gets an OIDC Issuer(s) trusted
+         * by the social agent, then ensures the issuer has a compatible configuration and stores
+         * pertinent information about it.
+         * @param socialAgentId URI of the SocialAgent Identity
+         * @param manual Lookup social agent profile and populate additional metadata
+         * @return SolidOidcSession.Builder
+         */
+        public Builder setSocialAgent(URI socialAgentId, boolean manual) throws SaiAuthenticationException {
             Objects.requireNonNull(socialAgentId, "Must provide a Social Agent identifier to build a Solid OIDC session");
             this.socialAgentId = socialAgentId;
-            this.oidcProviderId = getOidcIssuerForSocialAgent(this.httpClient, this.socialAgentId);
-            OIDCProviderMetadata metadata = getOIDCProviderConfiguration(this.oidcProviderId);
-            // Ensure that the OIDC Provider supports DPoP
-            if (metadata.getDPoPJWSAlgs() == null) {
-                throw new SaiAuthenticationException("OpenID Provider " + this.oidcProviderId.toString() + "does not support DPoP");
+            if (!manual) {
+                Objects.requireNonNull(this.httpClient, "Must provide an http client to build a Solid OIDC session");
+                this.setOidcProviderId(getOidcIssuerForSocialAgent(this.httpClient, this.socialAgentId));
+                OIDCProviderMetadata metadata = getOIDCProviderConfiguration(this.oidcProviderId);
+                // Ensure that the OIDC Provider supports DPoP
+                if (metadata.getDPoPJWSAlgs() == null) {
+                    throw new SaiAuthenticationException("OpenID Provider " + this.oidcProviderId.toString() + "does not support DPoP");
+                }
+                // Ensure that the OIDC Provider can issue webid and client_id claims
+                if (!metadata.getClaims().contains("webid")) {
+                    throw new SaiAuthenticationException("OpenID Provider " + this.oidcProviderId.toString() + "does not support the necessary claims for solid-oidc");
+                }
+                this.setAuthorizationEndpoint(metadata.getAuthorizationEndpointURI());
+                this.setOidcTokenEndpoint(metadata.getTokenEndpointURI());
             }
-            // Ensure that the OIDC Provider can issue webid and client_id claims
-            if (!metadata.getClaims().contains("webid")) {
-                throw new SaiAuthenticationException("OpenID Provider " + this.oidcProviderId.toString() + "does not support the necessary claims for solid-oidc");
-            }
-            this.oidcAuthorizationEndpoint = metadata.getAuthorizationEndpointURI();
-            this.oidcTokenEndpoint = metadata.getTokenEndpointURI();
+            return this;
+        }
+
+        /**
+         * Sets the authorization endpoint to use in the authorization request
+         * @param authorizationEndpoint authorization endpoint
+         * @return SolidOidcSession.Builder
+         */
+        public Builder setAuthorizationEndpoint(URI authorizationEndpoint) {
+            Objects.requireNonNull(authorizationEndpoint, "Must provide an authorization endpoint");
+            this.oidcAuthorizationEndpoint = authorizationEndpoint;
+            return this;
+        }
+
+        /**
+         * Sets the oidc token endpoint to use in the token request
+         * @param oidcTokenEndpoint token endpoint
+         * @return SolidOidcSession.Builder
+         */
+        public Builder setOidcTokenEndpoint(URI oidcTokenEndpoint) {
+            Objects.requireNonNull(oidcTokenEndpoint, "Must provide an oidc token endpoint");
+            this.oidcTokenEndpoint = oidcTokenEndpoint;
+            return this;
+        }
+
+        /**
+         * Sets the oidc provider
+         * @param oidcProviderId URI of the oidc provider
+         * @return SolidOidcSession.Builder
+         */
+        public Builder setOidcProviderId(URI oidcProviderId) {
+            Objects.requireNonNull(oidcProviderId, "Must provide an oidc provider");
+            this.oidcProviderId = oidcProviderId;
             return this;
         }
 
@@ -294,8 +340,8 @@ public class SolidOidcSession implements AuthorizedSession {
          */
         public Builder setApplication(URI applicationId, boolean manual) throws SaiAuthenticationException {
             Objects.requireNonNull(applicationId, "Must provide an application identifier to build a Solid OIDC session");
-            Objects.requireNonNull(httpClient, "Must provide an http client to build a Solid OIDC session");
             if (!manual) {
+                Objects.requireNonNull(httpClient, "Must provide an http client to build a Solid OIDC session");
                 Resource clientDocument = getClientIdDocument(this.httpClient, applicationId);
                 try {
                     this.setRedirects(RdfUtils.getRequiredUriObjects(clientDocument, SOLID_OIDC_REDIRECT_URIS));
@@ -435,13 +481,46 @@ public class SolidOidcSession implements AuthorizedSession {
             Objects.requireNonNull(this.authorizationCode, "Cannot request tokens without authorization code");
             Objects.requireNonNull(this.redirects, "Must provide a redirect for the token request");
             Objects.requireNonNull(this.codeVerifier, "Must provide a code verifier for the token request");
-            this.ecJwk = getEllipticCurveKey(Curve.P_256);
-            this.proofFactory = getDPoPProofFactory(this.getEcJwk());
+            this.setEllipticCurveKey(getEllipticCurveKey(Curve.P_256));
             Tokens tokens = obtainTokens(this.oidcTokenEndpoint, this.clientId, new AuthorizationCodeGrant(this.authorizationCode, this.redirect, this.codeVerifier), this.proofFactory);
             // The access token is not of type DPoP
             if (tokens.getDPoPAccessToken() == null) { throw new SaiAuthenticationException("Access token is not DPoP"); }
-            this.accessToken = translateAccessToken(tokens.getDPoPAccessToken());
-            if (tokens.getRefreshToken() != null) { this.refreshToken = translateRefreshToken(tokens.getRefreshToken()); }
+            this.setAccessToken(translateAccessToken(tokens.getDPoPAccessToken()));
+            if (tokens.getRefreshToken() != null) { this.setRefreshToken(translateRefreshToken(tokens.getRefreshToken())); }
+            return this;
+        }
+
+        /**
+         * Sets the elliptic curve key to use for DPoP requests
+         * @param ecJwk Elliptic curve key
+         * @return SolidOidcSession.Builder
+         */
+        public Builder setEllipticCurveKey(ECKey ecJwk) throws SaiAuthenticationException {
+            Objects.requireNonNull(ecJwk, "Must provide an elliptic curve key");
+            this.ecJwk = ecJwk;
+            this.proofFactory = getDPoPProofFactory(this.ecJwk);
+            return this;
+        }
+
+        /**
+         * Sets the access token
+         * @param accessToken Access token
+         * @return SolidOidcSession.Builder
+         */
+        public Builder setAccessToken(AccessToken accessToken) {
+            Objects.requireNonNull(accessToken, "Must provide an access token");
+            this.accessToken = accessToken;
+            return this;
+        }
+
+        /**
+         * Sets the refresh token
+         * @param refreshToken Refresh token
+         * @return SolidOidcSession.Builder
+         */
+        public Builder setRefreshToken(RefreshToken refreshToken) {
+            Objects.requireNonNull(refreshToken, "Must provide a refresh token");
+            this.refreshToken = refreshToken;
             return this;
         }
 
